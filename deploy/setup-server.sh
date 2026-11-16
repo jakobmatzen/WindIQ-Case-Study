@@ -24,7 +24,8 @@ echo "==> Creating 'deploy' user (used by GitHub Actions)"
 id deploy &>/dev/null || adduser --disabled-password --gecos "" deploy
 usermod -aG docker deploy
 install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
-echo "$DEPLOY_PUBKEY" >> /home/deploy/.ssh/authorized_keys
+touch /home/deploy/.ssh/authorized_keys
+grep -qxF "$DEPLOY_PUBKEY" /home/deploy/.ssh/authorized_keys || echo "$DEPLOY_PUBKEY" >> /home/deploy/.ssh/authorized_keys
 chown deploy:deploy /home/deploy/.ssh/authorized_keys
 chmod 600 /home/deploy/.ssh/authorized_keys
 
@@ -54,7 +55,9 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin prohibit-password
 SSH
-systemctl reload ssh
+# Ubuntu 24.04 uses socket activation (ssh.socket): new connections already
+# read the new config. Reload only if the classic service is running.
+systemctl try-reload-or-restart ssh.service || true
 
 systemctl enable --now fail2ban
 dpkg-reconfigure -f noninteractive unattended-upgrades
