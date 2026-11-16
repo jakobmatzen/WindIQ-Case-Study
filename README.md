@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WindIQ Case Study
 
-## Getting Started
+Next.js 16 · React 19 · shadcn/ui · Tailwind 4 · bun · Supabase (Postgres) · Drizzle ORM
 
-First, run the development server:
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local   # fill in your Supabase DEV project values
+bun install
+bun dev                      # web app on http://localhost:3000
+bun run worker               # background worker (second terminal)
+bun test                     # unit tests
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Database (code-first with Drizzle)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The schema lives in `src/db/schema.ts`. Migrations are generated into `drizzle/` and committed.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+| --- | --- |
+| `bun run db:generate --name <change>` | Diff the schema against the last migration and write a new SQL file |
+| `bun run db:migrate` | Apply pending migrations to `DATABASE_URL` (CI does this on deploy) |
+| `bun run db:studio` | Open Drizzle Studio to browse data |
+| `bun run db:check` | Sanity-check the migration files |
 
-## Learn More
+Workflow: edit `schema.ts` → `db:generate` → **read the generated SQL** → commit → open PR.
+Never use `drizzle-kit push` against dev/prod: it bypasses migration history.
 
-To learn more about Next.js, take a look at the following resources:
+All DB access goes through `getDb()` from `@/db` (Drizzle, server-side only). There is no login, and Supabase is used purely as hosted Postgres.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`dev` → dev environment, `main` → production, via GitHub Actions on a Hetzner server.
+Full setup guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/db/              Drizzle schema + client
+src/worker/          Background worker (scheduled jobs, records runs in sync_runs)
+src/app/api/health/  Health checks: /live (process up) and / (DB + sync freshness)
+drizzle/             Generated SQL migrations (commit these)
+deploy/              docker-compose, Caddyfile, one-time server setup script
+.github/workflows/   ci.yml (PRs), deploy.yml (dev/main)
+```

@@ -1,0 +1,14 @@
+# Caddy obtains and renews HTTPS certificates automatically.
+# Domains come from /opt/windiq/.env (DEV_DOMAIN / PROD_DOMAIN).
+
+{$PROD_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app-production:3000
+}
+
+{$DEV_DOMAIN} {
+	encode zstd gzip
+	# Keep the dev environment out of search engines.
+	header X-Robots-Tag "noindex, nofollow"
+	reverse_proxy app-development:3000
+}

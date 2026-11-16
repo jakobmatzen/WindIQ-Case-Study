@@ -1,0 +1,32 @@
+name: CI
+
+# Runs on every pull request: lint, typecheck, tests, migrations in sync, build.
+on:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun test
+      # Fails if someone changed src/db/schema.ts without running `bun run db:generate`.
+      - name: Schema and migrations in sync
+        run: |
+          bun run db:generate --name ci-drift-check
+          if [ -n "$(git status --porcelain drizzle)" ]; then
+            echo "::error::src/db/schema.ts has changes without a migration. Run 'bun run db:generate' and commit the result."
+            git status --porcelain drizzle
+            exit 1
+          fi
+          bun run db:check
+        env:
+          DATABASE_URL: postgresql://unused@localhost/unused
+      - run: bun --bun run build
+      - run: bun run build:worker

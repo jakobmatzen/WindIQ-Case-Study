@@ -1,0 +1,73 @@
+# Runs on the Hetzner server in /opt/windiq.
+# Copied there by the deploy workflow on every deploy.
+#
+# /opt/windiq/.env (created once by setup-server.sh) provides:
+#   IMAGE_REPO, DEV_DOMAIN, PROD_DOMAIN
+# /opt/windiq/app.development.env and app.production.env are written by CI.
+
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+x-worker-healthcheck: &worker-healthcheck
+  healthcheck:
+    # Healthy while the worker loop writes its heartbeat file (every 30 s).
+    test: ["CMD", "bun", "-e", "const f=Bun.file('/tmp/worker-heartbeat');process.exit((await f.exists()) && Date.now()-f.lastModified<120000?0:1)"]
+    interval: 30s
+    timeout: 5s
+    start_period: 20s
+    retries: 3
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    <<: *logging
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DEV_DOMAIN: ${DEV_DOMAIN}
+      PROD_DOMAIN: ${PROD_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  app-development:
+    image: ${IMAGE_REPO}:development
+    restart: unless-stopped
+    <<: *logging
+    env_file: app.development.env
+    expose:
+      - "3000"
+
+  worker-development:
+    image: ${IMAGE_REPO}:development
+    command: ["bun", "worker.js"]
+    restart: unless-stopped
+    <<: [*logging, *worker-healthcheck]
+    env_file: app.development.env
+
+  app-production:
+    image: ${IMAGE_REPO}:production
+    restart: unless-stopped
+    <<: *logging
+    env_file: app.production.env
+    expose:
+      - "3000"
+
+  worker-production:
+    image: ${IMAGE_REPO}:production
+    command: ["bun", "worker.js"]
+    restart: unless-stopped
+    <<: [*logging, *worker-healthcheck]
+    env_file: app.production.env
+
+volumes:
+  caddy_data:
+  caddy_config:
