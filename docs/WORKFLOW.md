@@ -69,6 +69,8 @@ Title is the version, body is bullets, footer is the PR number with `#`. Each PR
 
 Code, commits, PRs, CHANGELOG, skills and `docs/` in English. The guide (README, Linear) and Linear tickets in German.
 
+All documentation is gender-neutral. In German, use neutral forms without a gender star: *Gutachtende*, *Projektierende*, *Nutzende*, *Projektentwicklungsfirmen*; institutions (*Bank*) stay as they are. In English, use *they* or the role (*the user*).
+
 ## UI work
 
 Before building UI, show the user reviewable samples, made with the `better-ui`, `emil-design-eng` and `mattpocock-skills:prototype` skills. Match WindIQ's visual style from their website and documents, in light mode.

@@ -6,14 +6,14 @@ Diese Datei beschreibt, worum es in diesem Projekt geht, welche Rahmenbedingunge
 
 Case Study für die Position **Fullstack Engineer** bei **WindIQ**.
 
-WindIQ ist eine digitale Plattform, auf der mehrere Gutachterbüros für Windenergie zusammenarbeiten. Projektentwickler verwalten dort ihre Windprojekte, prüfen Standorte vor und beauftragen Gutachten.
+WindIQ ist eine digitale Plattform, auf der mehrere Gutachterbüros für Windenergie zusammenarbeiten. Projektentwicklungsfirmen verwalten dort ihre Windprojekte, prüfen Standorte vor und beauftragen Gutachten.
 
 Eine Kernfrage auf der Plattform lautet: **Wie viel Strom erzeugt eine Windenergieanlage an einem Standort im Jahr?** Mehrere Gruppen arbeiten mit derselben Zahl, jede mit einer anderen Frage:
 
 | Wer | Frage an die Zahl |
 | --- | --- |
-| Gutachter | Kann ich das Ergebnis fachlich vertreten? Woher kommt jeder Wert? |
-| Projektierer | Lohnt sich der Standort? Wie entwickelt sich der Ertrag? |
+| Gutachtende | Kann ich das Ergebnis fachlich vertreten? Woher kommt jeder Wert? |
+| Projektierende | Lohnt sich der Standort? Wie entwickelt sich der Ertrag? |
 | Bank | Wie sicher ist der Ertrag? (→ P90) |
 
 **Zu bauen ist eine kleine Version davon:**
@@ -150,7 +150,7 @@ Offene Fragen an WindIQ und die jeweils geltende Arbeitsannahme stehen im README
 | **Ertragsgutachten** | Fachgutachten über den erwarteten Ertrag eines Standorts. In Deutschland nach Richtlinie **FGW-TR6**. |
 | **bankfähig** | Gutachten, das Banken für die Finanzierung akzeptieren (akkreditiertes Büro, z. B. DAkkS / ISO/IEC 17025) |
 | **Gutachterbüro** | Ingenieurbüro, das Windgutachten erstellt |
-| **Projektierer** | Projektentwickler, der Windparks plant und zur Genehmigung bringt |
+| **Projektierende** | Projektentwicklungsfirmen, die Windparks planen und zur Genehmigung bringen |
 | **ERA5 / Global Wind Atlas** | frei verfügbare Wind-Modelldatensätze für grobe Ersteinschätzungen (nicht Teil dieser Case Study) |
 | **LiDAR** | Windmessung per Laser vom Boden aus, Alternative zum Messmast |
 

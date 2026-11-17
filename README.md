@@ -50,7 +50,7 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 
 | Datum | Entscheidung | Warum |
 | --- | --- | --- |
-| 16.11. | Eigener Worker statt Abruf im Web-Request | API-Ausfälle oder langsame Antworten erreichen die Nutzer nie. Jeder Lauf wird protokolliert. |
+| 16.11. | Eigener Worker statt Abruf im Web-Request | API-Ausfälle oder langsame Antworten erreichen die Nutzenden nie. Jeder Lauf wird protokolliert. |
 | 16.11. | Ein Hetzner-Server mit Docker statt Plattform-Hosting | passt ins Budget von 100 €, volle Kontrolle, ein Image für alle Umgebungen |
 | 16.11. | Supabase nur als Datenbank, Schema per Drizzle im Code | Migrationen sind versioniert und laufen automatisch im Deploy |
 | 16.11. | Kein Login | das Dashboard ist öffentlich und nur lesend |
