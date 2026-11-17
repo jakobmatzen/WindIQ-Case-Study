@@ -9,15 +9,13 @@ import { integer, pgEnum, pgTable, serial, text, timestamp } from "drizzle-orm/p
  * gets no access at all.
  */
 
-/** Worker jobs that record runs in `sync_runs`. Typed so worker and health check cannot drift apart. */
-export type SyncJob = "measurements";
-
 export const syncStatus = pgEnum("sync_status", ["running", "success", "error"]);
 
 /** One row per worker sync run. Used for the health check and the operations page. */
 export const syncRuns = pgTable("sync_runs", {
   id: serial("id").primaryKey(),
-  job: text("job").notNull(),
+  // TypeScript-only enum: no DB constraint, so adding a job needs no migration.
+  job: text("job", { enum: ["measurements"] }).notNull(),
   status: syncStatus("status").notNull().default("running"),
   startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
@@ -26,3 +24,6 @@ export const syncRuns = pgTable("sync_runs", {
 }).enableRLS();
 
 export type SyncRun = typeof syncRuns.$inferSelect;
+
+/** Worker jobs that record runs in `sync_runs`. */
+export type SyncJob = SyncRun["job"];

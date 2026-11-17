@@ -4,43 +4,52 @@ import nextTs from "eslint-config-next/typescript";
 
 /**
  * Layer boundaries from docs/ARCHITECTURE.md ("May import" column).
- * Every layer may import itself and what is listed here; everything else is an error,
+ * Every layer may import itself and the layers listed here; any other layer is an error,
  * whether imported via `@/layer` or a relative `../layer` path.
+ * `externals` bans npm packages; `pure` also bans every Node built-in and Bun's runtime API.
  * Keep this map and the table in ARCHITECTURE.md in sync.
  */
-const mayImport = {
-  core: ["lib"],
-  sources: ["core", "lib"],
-  db: ["core", "lib"],
-  worker: ["sources", "core", "db", "lib"],
-  server: ["db", "core", "lib"],
-  app: ["server", "components", "core", "lib"],
-  components: ["core", "lib"],
-  lib: [],
+const framework = ["next", "react", "react-dom", "server-only"];
+const database = ["drizzle-orm", "postgres"];
+
+const layers = {
+  core: { mayImport: ["lib"], externals: [...framework, ...database], pure: true },
+  sources: { mayImport: ["core", "lib"], externals: [...framework, ...database] },
+  db: { mayImport: ["core", "lib"], externals: framework },
+  worker: { mayImport: ["sources", "core", "db", "lib"], externals: framework },
+  server: { mayImport: ["db", "core", "lib"], externals: database },
+  app: { mayImport: ["server", "components", "core", "lib"], externals: database },
+  components: { mayImport: ["core", "lib"], externals: [...database, "server-only"] },
+  lib: { mayImport: [], externals: [...framework, ...database], pure: true },
 };
 
-/** External modules that would bring I/O or a framework into the pure core. */
-const coreForbiddenModules =
-  "^(next|react|react-dom|server-only|drizzle-orm|postgres)(/.*)?$|" +
-  "^(node:.*|fs|fs/promises|net|http|https|http2|child_process|dns|tls|dgram|cluster|worker_threads)$";
+const names = Object.keys(layers);
 
-const layers = Object.keys(mayImport);
-
-const layerRules = layers.map((layer) => {
-  const forbidden = layers.filter((other) => other !== layer && !mayImport[layer].includes(other));
-  const patterns = forbidden.map((other) => ({
-    regex: `^(@/|(\\.\\./)+)${other}(/.*)?$`,
-    message: `src/${layer} must not import src/${other} (see docs/ARCHITECTURE.md).`,
-  }));
-  if (layer === "core") {
+const layerRules = Object.entries(layers).map(([layer, { mayImport, externals, pure }]) => {
+  const forbiddenLayers = names.filter((other) => other !== layer && !mayImport.includes(other));
+  const patterns = [
+    ...forbiddenLayers.map((other) => ({
+      regex: `^(@/|(\\.\\./)+)${other}(/.*)?$`,
+      message: `src/${layer} must not import src/${other} (see docs/ARCHITECTURE.md).`,
+    })),
+    ...externals.map((name) => ({
+      regex: `^${name}(/.*)?$`,
+      message: `src/${layer} must not import ${name} (see docs/ARCHITECTURE.md).`,
+    })),
+  ];
+  if (pure) {
+    // Bun's runtime API is I/O; `bun:test` stays allowed for tests.
     patterns.push({
-      regex: coreForbiddenModules,
-      message: "src/core stays pure: no I/O and no framework (see docs/ARCHITECTURE.md).",
+      regex: "^bun(:(?!test$).*)?$",
+      message: `src/${layer} stays pure: no I/O (see docs/ARCHITECTURE.md).`,
     });
   }
   return {
     files: [`src/${layer}/**/*.{ts,tsx}`],
-    rules: { "no-restricted-imports": ["error", { patterns }] },
+    rules: {
+      "no-restricted-imports": ["error", { patterns }],
+      ...(pure && { "import/no-nodejs-modules": "error" }),
+    },
   };
 });
 
