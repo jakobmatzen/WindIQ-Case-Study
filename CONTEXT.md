@@ -93,6 +93,16 @@ Diese Punkte ergeben sich aus der Spezifikation und müssen im Code behandelt we
 6. **Lücken möglich:** Stunden können fehlen. Die Datenabdeckung der letzten 12 Monate sollte sichtbar sein.
 7. Nicht dokumentiert sind Rate-Limits, 5xx-Verhalten und Timeouts. Deshalb defensiv arbeiten: Timeouts, Retries mit Backoff, Ausfall der API darf die Anwendung nicht stören (zuletzt berechnetes Ergebnis weiter anzeigen).
 
+### Beobachtet im echten Datenabruf (17.11.2026, nicht in der Doku)
+
+Ein voller Abruf (8.707 Stundenwerte) zeigt zusätzlich:
+
+- **Fehlerwert `-999`** (42 Werte) und **unmögliche Spitzen** von 60–83 m/s (13 Werte): Plausibilitätsprüfung nötig.
+- **`km/h`** kommt tatsächlich vor (349 Werte, plausibel nach Umrechnung ÷ 3,6). Strings sind sauber numerisch (`"6.69"`).
+- **Gemischte Zeitzonen** (`Z`, `+00:00`, `+02:00`): vor dem Upsert auf UTC normalisieren, sonst entstehen doppelte Stunden.
+- **HTTP 503** tritt schon beim normalen Blättern auf: Retries sind von Anfang an Pflicht.
+- Der Cursor ist base64 für `offset:<n>`. Ein Retry mit demselben Cursor ist sicher.
+
 ## Berechnung (Vorgabe aus der Case Study)
 
 1. **Höhenumrechnung:** Der Mast misst tiefer als die Nabe.
@@ -106,11 +116,9 @@ Diese Punkte ergeben sich aus der Spezifikation und müssen im Code behandelt we
 
 Plausibilität mit den Beispielwerten der Doku: Mast 100 m, Nabe 140 m, α = 0,2 → Faktor (1,4)^0,2 ≈ 1,07. Verluste 3 % / 2 % / 5 % → netto ≈ 89,4 % von brutto. U = 10 % → P90 ≈ 87,2 % von P50.
 
-### Eigene Annahmen (noch offen, siehe unten)
+### Annahmen
 
-- Zwischen den 1-m/s-Stützpunkten der Kennlinie wird **linear interpoliert**.
-- Unterhalb `cut_in` und oberhalb `cut_out` ist die Leistung 0.
-- „Letzte 12 Monate“ = rollierendes Fenster der letzten 8.760 Stunden bis zum neuesten Messwert.
+Offene Fragen an WindIQ und die jeweils geltende Arbeitsannahme stehen im README (Abschnitt „Offene Fragen an WindIQ“). Vor jeder Arbeit an Validierung oder Berechnung dort nachlesen und neue Fragen dort ergänzen.
 
 ## Glossar
 
@@ -161,13 +169,3 @@ Plausibilität mit den Beispielwerten der Doku: Mast 100 m, Nabe 140 m, α = 0,2
 | CI/CD | GitHub Actions: PR-Checks (Lint, Typecheck, `bun test`, Build), Deploy `dev` → Dev, `main` → Prod, Migrationen im Deploy, Smoke-Test gegen `/api/health` nach dem Deploy |
 
 Details zum Deployment: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-
-## Offene Fragen
-
-Klären, bevor die Berechnung festgelegt wird. Die Fragen lassen sich per E-Mail an WindIQ stellen:
-
-- Wie sollen fehlende oder ungültige Werte (`null`, nicht parsebare Strings) in die Berechnung eingehen: auslassen oder hochrechnen auf ein volles Jahr?
-- Kommen andere Einheiten als `m/s` vor (z. B. `km/h`, `kn`)?
-- „Letzte 12 Monate“: rollierend bis zum neuesten Wert oder Kalendermonate?
-- Zwischen den Kennlinien-Stützpunkten interpolieren (linear) oder auf den nächsten Stützpunkt runden?
-- Sollen frühere Ergebnisse historisiert werden (z. B. P50/P90 im Zeitverlauf)?
