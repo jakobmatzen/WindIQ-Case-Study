@@ -61,6 +61,8 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 17.11. | Automatischer Code-Review vor jedem PR | eine zweite Prüfung vor meinem eigenen Review |
 | 17.11. | Offene Fragen blockieren nicht | Mit einer dokumentierten Annahme weiterarbeiten (siehe 7.) und anpassen, sobald WindIQ antwortet |
 | 17.11. | PRs merged Claude erst auf meine Freigabe | Titel und Nachricht stimmen immer, nichts muss von Hand kopiert werden. Die Kontrolle bleibt bei mir. |
+| 17.11. | Unbrauchbare Messwerte werden mit Grund gespeichert, nicht weggeworfen | Datenabdeckung und Ablehngründe bleiben sichtbar, der Rohwert bleibt für Gutachtende nachvollziehbar |
+| 17.11. | Pro Stunde ein Wert in UTC, die neueste Version gewinnt | Die API liefert Stunden in gemischten Zeitzonen und teils doppelt (siehe 5.) |
 
 ## 5. Befunde aus der API
 

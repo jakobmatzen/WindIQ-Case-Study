@@ -2,6 +2,14 @@
 
 All versions of the WindIQ case study. Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0-beta.4 – 2026-11-17
+
+- Wind readings are checked test-first: UTC hour, m/s value and a status per reading (`missing`, `sentinel`, `out_of_range`, …)
+- Worker imports the full year from the WindIQ API, then syncs new hours every 15 minutes; 5xx answers are retried
+- Readings stored per mast and hour with raw value and version; newest version wins
+- Start page shows the data coverage of the last 12 months
+- `/ship` and `/release` wait for CI checks to appear
+
 ## v1.0.0-beta.3 – 2026-11-17
 
 - Architecture with fixed layers in `docs/ARCHITECTURE.md`, enforced by ESLint
