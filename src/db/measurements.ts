@@ -1,4 +1,4 @@
-import { and, between, desc, eq, sql } from "drizzle-orm";
+import { and, between, desc, eq, lte, sql } from "drizzle-orm";
 import type { HourWindow } from "@/core/coverage";
 import type { Mast } from "@/core/mast";
 import type { CheckedMeasurement, MeasurementStatus } from "@/core/measurement";
@@ -6,6 +6,10 @@ import { getDb } from "./client";
 import { masts, measurements } from "./schema";
 
 /** Repository for masts and their hourly readings. */
+
+// Hours from the future are stored but never count as "newest": one bad timestamp must not
+// push the next `since` and the coverage window into the future.
+const notInFuture = lte(measurements.hour, sql`now()`);
 
 export async function upsertMast(mast: Mast): Promise<void> {
   const values = { ...mast, updatedAt: new Date() };
@@ -17,15 +21,15 @@ export async function newestMeasurementHour(mastId: string): Promise<Date | null
   const [row] = await getDb()
     .select({ hour: measurements.hour })
     .from(measurements)
-    .where(eq(measurements.mastId, mastId))
+    .where(and(eq(measurements.mastId, mastId), notInFuture))
     .orderBy(desc(measurements.hour))
     .limit(1);
   return row?.hour ?? null;
 }
 
 /**
- * Inserts checked readings, or updates the stored hour when the incoming version is at least as new.
- * An older version never overwrites a newer one. Returns the number of readings written.
+ * Inserts checked readings, or updates the stored hour when the incoming version is newer.
+ * Same or older versions leave the row alone. Returns the number of readings actually written.
  */
 export async function upsertMeasurements(
   mastId: string,
@@ -58,7 +62,7 @@ export async function upsertMeasurements(
         sourceUpdatedAt: sql`excluded.source_updated_at`,
         syncedAt: sql`now()`,
       },
-      setWhere: sql`excluded.version >= ${measurements.version}`,
+      setWhere: sql`excluded.version > ${measurements.version}`,
     })
     .returning({ hour: measurements.hour });
   return written.length;
@@ -78,6 +82,7 @@ export async function currentMast(): Promise<{
     })
     .from(measurements)
     .innerJoin(masts, eq(masts.id, measurements.mastId))
+    .where(notInFuture)
     .groupBy(measurements.mastId, masts.name)
     .orderBy(desc(sql`max(${measurements.hour})`))
     .limit(1);

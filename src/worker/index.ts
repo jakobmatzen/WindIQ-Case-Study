@@ -29,18 +29,20 @@ function log(level: "info" | "error", msg: string, extra: Record<string, unknown
   console[level](JSON.stringify({ ts: new Date().toISOString(), level, msg, ...extra }));
 }
 
-/** Records a sync run in `sync_runs` around the given job function. */
-async function runJob(job: SyncJob, fn: () => Promise<number>) {
+/** Records a sync run in `sync_runs` around the given job function. Returns whether it succeeded. */
+async function runJob(job: SyncJob, fn: () => Promise<number>): Promise<boolean> {
   const runId = await startSyncRun(job);
   const started = Date.now();
   try {
     const items = await fn();
     await finishSyncRun(runId, items);
     log("info", "job succeeded", { job, items, durationMs: Date.now() - started });
+    return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await failSyncRun(runId, message);
     log("error", "job failed", { job, error: message, durationMs: Date.now() - started });
+    return false;
   }
 }
 
@@ -60,7 +62,7 @@ function measurementSource(): MeasurementSource {
 
 /**
  * First run: imports the whole year the source offers. Later runs: everything from the newest
- * stored hour on (that hour included, so a late correction of it is picked up too).
+ * stored hour on (that hour included, so a newer version of it is picked up too).
  * Returns the number of readings written.
  */
 async function syncMeasurements(): Promise<number> {
@@ -76,12 +78,14 @@ async function syncMeasurements(): Promise<number> {
   return written;
 }
 
-async function tick() {
+/** One round of all jobs. Never throws, so the loop survives; returns whether everything succeeded. */
+async function tick(): Promise<boolean> {
   try {
-    await runJob("measurements", syncMeasurements);
+    return await runJob("measurements", syncMeasurements);
   } catch (error) {
     // e.g. DB unreachable: log and try again next tick, never crash the loop.
     log("error", "tick failed", { error: error instanceof Error ? error.message : String(error) });
+    return false;
   }
 }
 
@@ -113,8 +117,7 @@ async function main() {
 }
 
 if (process.argv.includes("--once")) {
-  await tick();
-  process.exit(0);
+  process.exit((await tick()) ? 0 : 1);
 } else {
   void main();
 }
