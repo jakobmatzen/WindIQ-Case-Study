@@ -2,6 +2,12 @@
 
 All versions of the WindIQ case study. Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0-beta.2 – 2026-11-17
+
+- PRs are merged by Claude on the user's "merge #N", with the exact squash commit message
+- Forward integration lands as a real merge commit
+- GitHub deletes merged branches automatically
+
 ## v1.0.0-beta.1 – 2026-11-17
 
 - Workflow rules for branches, merges and versioning (`docs/WORKFLOW.md`)
