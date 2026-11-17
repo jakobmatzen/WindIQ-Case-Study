@@ -63,6 +63,7 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 17.11. | PRs merged Claude erst auf meine Freigabe | Titel und Nachricht stimmen immer, nichts muss von Hand kopiert werden. Die Kontrolle bleibt bei mir. |
 | 17.11. | Unbrauchbare Messwerte werden mit Grund gespeichert, nicht weggeworfen | Datenabdeckung und Ablehngründe bleiben sichtbar, der Rohwert bleibt für Gutachtende nachvollziehbar |
 | 17.11. | Pro Stunde ein Wert in UTC, die neueste Version gewinnt | Die API liefert Stunden in gemischten Zeitzonen und teils doppelt (siehe 5.) |
+| 17.11. | Aufräum-Review (`simplify`) einmal pro Release statt pro Ticket | Es kostete pro Ticket viel KI-Budget und fand vor allem Kosmetik. Der Fehler-Review bleibt bei jedem PR. |
 
 ## 5. Befunde aus der API
 

@@ -29,12 +29,13 @@ Show the user, then wait for "go":
 On "go":
 
 1. Create and switch to `release/v<version>`.
-2. Run every step of `.github/workflows/ci.yml` locally, as in `/ship` step 3.
-3. Set `package.json` `version` to `<version>`.
-4. `CHANGELOG.md`: new top section `## v<version> – <today>`, bullets summarising the betas (one per beta is fine).
-5. Guide (README and Linear P-JAK-1): add a line under "Releases": version, date, one sentence on what went live.
-6. Commit with `commit`: title `Prepare v<version>`.
-7. Push and open the PR. Body:
+2. Invoke the `simplify` skill on `origin/main...HEAD` (everything this release brings). Keep the cleanups that make the code clearer, skip cosmetics, commit with `commit`.
+3. Run every step of `.github/workflows/ci.yml` locally, as in `/ship` step 3.
+4. Set `package.json` `version` to `<version>`.
+5. `CHANGELOG.md`: new top section `## v<version> – <today>`, bullets summarising the betas (one per beta is fine).
+6. Guide (README and Linear P-JAK-1): add a line under "Releases": version, date, one sentence on what went live.
+7. Commit with `commit`: title `Prepare v<version>`.
+8. Push and open the PR. Body:
 
 ````markdown
 ## Release v<version>

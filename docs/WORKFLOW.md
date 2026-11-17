@@ -57,7 +57,7 @@ Title is the version, body is bullets, footer is the PR number with `#`. Each PR
 
 - Code follows `docs/ARCHITECTURE.md`; ESLint enforces its layer boundaries.
 - `src/core` is written test-first with the `mattpocock-skills:tdd` skill.
-- `/ship` runs an automatic review (`code-review`, `simplify`) before the PR; the user reviews after.
+- `/ship` runs an automatic `code-review` before the PR; the user reviews after. `simplify` runs once per release in `/release`, where it sees the whole release diff for the token cost of one run.
 
 ## Documentation
 

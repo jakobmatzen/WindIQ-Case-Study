@@ -23,8 +23,9 @@ Done when you can name ticket, mode and target branch.
 ## 2. Review
 
 1. Invoke the `code-review` skill at `medium` on this branch against its target (`origin/<target>...HEAD`). Fix every confirmed finding; list the ones you leave, with the reason, for the PR's "Review notes".
-2. Invoke the `simplify` skill on the same diff and keep the cleanups that make the code clearer.
-3. Commit the fixes with `commit`.
+2. Commit the fixes with `commit`.
+
+Cleanups (`simplify`) run once per release in `/release`, not per ticket: they cost a lot of tokens and mostly find cosmetics.
 
 Done when no confirmed finding is left unfixed or unexplained.
 
