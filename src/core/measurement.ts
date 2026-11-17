@@ -87,3 +87,17 @@ export function checkMeasurement(input: MeasurementInput): CheckedMeasurement {
     updatedAt: new Date(input.updatedAt),
   };
 }
+
+/**
+ * One reading per UTC hour: the highest version wins, on equal versions the later one in the list.
+ * Needed because the source sends some hours twice (e.g. as `Z` and as `+00:00`).
+ */
+export function newestPerHour(readings: CheckedMeasurement[]): CheckedMeasurement[] {
+  const byHour = new Map<number, CheckedMeasurement>();
+  for (const reading of readings) {
+    const key = reading.hour.getTime();
+    const kept = byHour.get(key);
+    if (!kept || reading.version >= kept.version) byHour.set(key, reading);
+  }
+  return [...byHour.values()];
+}

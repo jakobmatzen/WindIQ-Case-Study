@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import fixture from "./__fixtures__/windiq-measurements.json";
-import { checkMeasurement, type MeasurementInput } from "./measurement";
+import { checkMeasurement, newestPerHour, type MeasurementInput } from "./measurement";
 
 /** A reading as the source adapter hands it over; overrides pick the case under test. */
 function reading(overrides: Partial<MeasurementInput> = {}): MeasurementInput {
@@ -143,5 +143,30 @@ describe("checkMeasurement on real WindIQ data", () => {
   test("puts the summer readings sent as +02:00 on the right UTC hour", () => {
     const summer = checked.find((c) => c.hour.toISOString() === "2026-07-19T00:00:00.000Z");
     expect(summer?.windSpeedMs).toBe(1.05);
+  });
+});
+
+describe("newestPerHour", () => {
+  test("keeps one reading per UTC hour, the highest version", () => {
+    const readings = [
+      checkMeasurement(reading({ timestamp: "2026-03-02T20:00:00Z", windSpeed: 4.8, version: 1 })),
+      checkMeasurement(
+        reading({ timestamp: "2026-03-02T22:00:00+02:00", windSpeed: 5.1, version: 2 }),
+      ),
+      checkMeasurement(reading({ timestamp: "2026-03-02T21:00:00Z", windSpeed: 3, version: 1 })),
+    ];
+    expect(newestPerHour(readings).map((r) => [r.hour.toISOString(), r.windSpeedMs])).toEqual([
+      ["2026-03-02T20:00:00.000Z", 5.1],
+      ["2026-03-02T21:00:00.000Z", 3],
+    ]);
+  });
+
+  test("collapses the same hour sent once as Z and once as +00:00", () => {
+    // Seen 19 times in the real API export: identical readings, two spellings of UTC.
+    const readings = [
+      checkMeasurement(reading({ timestamp: "2026-03-02T20:00:00Z" })),
+      checkMeasurement(reading({ timestamp: "2026-03-02T20:00:00+00:00" })),
+    ];
+    expect(newestPerHour(readings)).toHaveLength(1);
   });
 });
