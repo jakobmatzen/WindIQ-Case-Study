@@ -2,4 +2,11 @@
 export { getDb } from "./client";
 export * as schema from "./schema";
 export type { SyncJob, SyncRun } from "./schema";
+export {
+  listMasts,
+  measurementStatuses,
+  newestMeasurementHour,
+  upsertMast,
+  upsertMeasurements,
+} from "./measurements";
 export { failSyncRun, finishSyncRun, lastSuccessfulSync, startSyncRun } from "./sync-runs";

@@ -4,8 +4,20 @@
  *
  *   local:  bun run worker
  *   docker: bun worker.js  (bundled by `bun run build:worker`)
+ *   once:   add `--once` to run a single sync and exit (manual resync, local checks)
  */
-import { failSyncRun, finishSyncRun, startSyncRun, type SyncJob } from "@/db";
+import { checkMeasurement, newestPerHour } from "@/core/measurement";
+import {
+  failSyncRun,
+  finishSyncRun,
+  newestMeasurementHour,
+  startSyncRun,
+  upsertMast,
+  upsertMeasurements,
+  type SyncJob,
+} from "@/db";
+import type { MeasurementSource } from "@/sources/types";
+import { createWindiqSource } from "@/sources/windiq";
 
 const INTERVAL_MS = Number(process.env.SYNC_INTERVAL_MS) || 15 * 60_000;
 const HEARTBEAT_FILE = process.env.WORKER_HEARTBEAT_FILE ?? "/tmp/worker-heartbeat";
@@ -17,32 +29,63 @@ function log(level: "info" | "error", msg: string, extra: Record<string, unknown
   console[level](JSON.stringify({ ts: new Date().toISOString(), level, msg, ...extra }));
 }
 
-/** Records a sync run in `sync_runs` around the given job function. */
-async function runJob(job: SyncJob, fn: () => Promise<number>) {
+/** Records a sync run in `sync_runs` around the given job function. Returns whether it succeeded. */
+async function runJob(job: SyncJob, fn: () => Promise<number>): Promise<boolean> {
   const runId = await startSyncRun(job);
   const started = Date.now();
   try {
     const items = await fn();
     await finishSyncRun(runId, items);
     log("info", "job succeeded", { job, items, durationMs: Date.now() - started });
+    return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await failSyncRun(runId, message);
     log("error", "job failed", { job, error: message, durationMs: Date.now() - started });
+    return false;
   }
 }
 
-async function syncMeasurements(): Promise<number> {
-  // TODO: fetch new/updated measurements from the WindIQ API and upsert them.
-  return 0;
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is not set`);
+  return value;
 }
 
-async function tick() {
+function measurementSource(): MeasurementSource {
+  return createWindiqSource({
+    baseUrl: requireEnv("WINDIQ_API_BASE_URL"),
+    clientId: requireEnv("WINDIQ_CLIENT_ID"),
+    clientSecret: requireEnv("WINDIQ_CLIENT_SECRET"),
+  });
+}
+
+/**
+ * First run: imports the whole year the source offers. Later runs: everything from the newest
+ * stored hour on (that hour included, so a newer version of it is picked up too).
+ * Returns the number of readings written.
+ */
+async function syncMeasurements(): Promise<number> {
+  const source = measurementSource();
+  const mast = await source.fetchMast();
+  await upsertMast(mast);
+
+  const since = (await newestMeasurementHour(mast.id)) ?? undefined;
+  let written = 0;
+  for await (const page of source.fetchMeasurements({ since })) {
+    written += await upsertMeasurements(mast.id, newestPerHour(page.map(checkMeasurement)));
+  }
+  return written;
+}
+
+/** One round of all jobs. Never throws, so the loop survives; returns whether everything succeeded. */
+async function tick(): Promise<boolean> {
   try {
-    await runJob("measurements", syncMeasurements);
+    return await runJob("measurements", syncMeasurements);
   } catch (error) {
     // e.g. DB unreachable: log and try again next tick, never crash the loop.
     log("error", "tick failed", { error: error instanceof Error ? error.message : String(error) });
+    return false;
   }
 }
 
@@ -73,4 +116,8 @@ async function main() {
   process.exit(0);
 }
 
-void main();
+if (process.argv.includes("--once")) {
+  process.exit((await tick()) ? 0 : 1);
+} else {
+  void main();
+}

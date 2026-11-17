@@ -57,7 +57,7 @@ Title is the version, body is bullets, footer is the PR number with `#`. Each PR
 
 - Code follows `docs/ARCHITECTURE.md`; ESLint enforces its layer boundaries.
 - `src/core` is written test-first with the `mattpocock-skills:tdd` skill.
-- `/ship` runs an automatic review (`code-review`, `simplify`) before the PR; the user reviews after.
+- `/ship` runs an automatic `code-review` before the PR; the user reviews after. `simplify` runs once per release in `/release`, where it sees the whole release diff for the token cost of one run.
 
 ## Documentation
 
@@ -68,6 +68,8 @@ Title is the version, body is bullets, footer is the PR number with `#`. Each PR
 ## Language
 
 Code, commits, PRs, CHANGELOG, skills and `docs/` in English. The guide (README, Linear) and Linear tickets in German.
+
+All documentation is gender-neutral. In German, use neutral forms without a gender star: *Gutachtende*, *Projektierende*, *Nutzende*, *Projektentwicklungsfirmen*; institutions (*Bank*) stay as they are. In English, use *they* or the role (*the user*).
 
 ## UI work
 

@@ -50,7 +50,7 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 
 | Datum | Entscheidung | Warum |
 | --- | --- | --- |
-| 16.11. | Eigener Worker statt Abruf im Web-Request | API-Ausfälle oder langsame Antworten erreichen die Nutzer nie. Jeder Lauf wird protokolliert. |
+| 16.11. | Eigener Worker statt Abruf im Web-Request | API-Ausfälle oder langsame Antworten erreichen die Nutzenden nie. Jeder Lauf wird protokolliert. |
 | 16.11. | Ein Hetzner-Server mit Docker statt Plattform-Hosting | passt ins Budget von 100 €, volle Kontrolle, ein Image für alle Umgebungen |
 | 16.11. | Supabase nur als Datenbank, Schema per Drizzle im Code | Migrationen sind versioniert und laufen automatisch im Deploy |
 | 16.11. | Kein Login | das Dashboard ist öffentlich und nur lesend |
@@ -61,6 +61,9 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 17.11. | Automatischer Code-Review vor jedem PR | eine zweite Prüfung vor meinem eigenen Review |
 | 17.11. | Offene Fragen blockieren nicht | Mit einer dokumentierten Annahme weiterarbeiten (siehe 7.) und anpassen, sobald WindIQ antwortet |
 | 17.11. | PRs merged Claude erst auf meine Freigabe | Titel und Nachricht stimmen immer, nichts muss von Hand kopiert werden. Die Kontrolle bleibt bei mir. |
+| 17.11. | Unbrauchbare Messwerte werden mit Grund gespeichert, nicht weggeworfen | Datenabdeckung und Ablehngründe bleiben sichtbar, der Rohwert bleibt für Gutachtende nachvollziehbar |
+| 17.11. | Pro Stunde ein Wert in UTC, die neueste Version gewinnt | Die API liefert Stunden in gemischten Zeitzonen und teils doppelt (siehe 5.) |
+| 17.11. | Aufräum-Review (`simplify`) einmal pro Release statt pro Ticket | Es kostete pro Ticket viel KI-Budget und fand vor allem Kosmetik. Der Fehler-Review bleibt bei jedem PR. |
 
 ## 5. Befunde aus der API
 
@@ -72,9 +75,11 @@ Ein vollständiger Abruf (17.11., 8.707 Stundenwerte über ein Jahr) zeigt, womi
 | Werte in km/h statt m/s | 349 Werte (≈ 4 %) | angedeutet |
 | Fehlerwert `-999` | 42 Werte | nein |
 | unmögliche Spitzen (60–83 m/s) | 13 Werte | nein |
+| negative Windgeschwindigkeit (bis −2,9 m/s) | 17 Werte | nein |
 | Lücke | einmal 72 Stunden (April) | ja |
 | nachträgliche Korrekturen | ≈ 1.650 Werte, teils Tage später | ja |
 | gemischte Zeitzonen (`Z`, `+02:00`) | ein Sommermonat | nein |
+| doppelt gelieferte Stunden (einmal `Z`, einmal `+00:00`) | 19 Stunden | nein |
 | kurzzeitige Ausfälle (HTTP 503) | einmal beim Abruf | nein |
 | Anlagen- und Standortdaten | bereits Version 47 | ja |
 
@@ -93,12 +98,13 @@ Bis eine Antwort kommt, gilt jeweils die Arbeitsannahme.
 | Frage | Arbeitsannahme |
 | --- | --- |
 | Ist `-999` ein Fehlercode? | ja, der Wert wird verworfen |
+| Sind negative Werte ein Messfehler oder Windstille? | Messfehler, der Wert wird verworfen. Für den Ertrag fast egal: sie liegen ohnehin unter Cut-in. |
 | Ab welcher Windgeschwindigkeit ist ein Wert unplausibel? | über 40 m/s wird verworfen |
-| Wie gehen fehlende oder verworfene Werte in den Jahresertrag ein: auslassen oder auf ein volles Jahr hochrechnen? | noch offen, wird mit der Berechnung festgelegt. Die Datenabdeckung wird in jedem Fall angezeigt. |
+| Wie gehen fehlende oder verworfene Werte in den Jahresertrag ein: auslassen oder auf ein volles Jahr hochrechnen? hochrechnen: Summe der gültigen Stunden × 8.760 / Anzahl gültiger Stunden. Die Datenabdeckung steht immer daneben, unter 90 % mit Warnung. |
 | Kommen weitere Einheiten als m/s und km/h vor? | km/h wird umgerechnet, unbekannte Einheiten werden verworfen |
 | „Letzte 12 Monate“: rollierend oder Kalendermonate? | rollierend, die letzten 8.760 Stunden bis zum neuesten Wert |
 | Kennlinie zwischen den Stützpunkten interpolieren? | ja, linear. Unter Cut-in und über Cut-out ist die Leistung 0. |
-| Sollen frühere Ergebnisse gespeichert werden (P50/P90 im Zeitverlauf)? | noch offen |
+| Sollen frühere Ergebnisse gespeichert werden (P50/P90 im Zeitverlauf)? | ja, ein neues Ergebnis, sobald sich Messwerte, Anlage oder Standort ändern |
 
 ## Releases
 
