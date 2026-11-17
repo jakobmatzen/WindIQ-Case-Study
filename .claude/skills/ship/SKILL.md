@@ -42,7 +42,8 @@ Write the new version to `package.json`.
 
 1. `CHANGELOG.md`: new section at the top, `## v<version> – <today YYYY-MM-DD>`, two to five short bullets about what this ticket delivered.
 2. Guide (`README.md` and the Linear project description of P-JAK-1, kept identical apart from "Lokal starten"): add what this ticket changed that matters for explaining the project: a decision and why, a new building block, a new open question with its working assumption. Skip if nothing qualifies. German, short.
-3. Commit with `commit`: title `Prepare v<version>`.
+3. **UI changed** (anything under `src/app` or `src/components` that renders): screenshot every affected screen in the running app, light mode, desktop width plus one phone width. Use Playwright (`bunx playwright screenshot`); if no browser is installed yet, ask before installing Chromium. Save them as `docs/screenshots/jak-<n>/<screen>.png`.
+4. Commit with `commit`: title `Prepare v<version>`.
 
 ## 5. Plan
 
@@ -61,6 +62,9 @@ Show the user, then wait for "go":
 
 Linear: JAK-<n>
 
+## Screenshots
+<only when UI changed: one image per screen, see step 6>
+
 ## Squash commit
 Title: `v<version>`
 ```
@@ -77,7 +81,7 @@ Title: `v<version>`
 On "go":
 
 1. Push, then `gh pr create --base <target> --title "v<version>" --body-file <file>`.
-2. Fill the real PR number into the squash commit footer (`gh pr edit <n> --body-file <file>`).
-3. Linear: ticket → "In Review", attach the PR link.
+2. Fill the real PR number into the squash commit footer (`gh pr edit <n> --body-file <file>`). With screenshots, embed each one in the same edit as `![<screen>](https://raw.githubusercontent.com/<owner>/<repo>/<commit sha>/docs/screenshots/jak-<n>/<screen>.png)`. The commit SHA keeps the link valid after the squash merge.
+3. Linear: ticket → "In Review", attach the PR link. With screenshots, upload each one (`prepare_file_upload`) and add them to the ticket description under "Screenshots".
 4. Give the user the PR URL. Leave the PR open: the user reviews and merges by hand, using the squash commit block.
 5. **hotfix** only: remind the user that after merging, `/release` does the forward integration `main → dev` (its "Forward integration" section).

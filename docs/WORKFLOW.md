@@ -65,3 +65,5 @@ Code, commits, PRs, CHANGELOG, skills and `docs/` in English. The guide (README,
 ## UI work
 
 Before building UI, show the user reviewable samples, made with the `better-ui`, `emil-design-eng` and `mattpocock-skills:prototype` skills. Match WindIQ's visual style from their website and documents, in light mode.
+
+Every PR that adds or changes UI shows screenshots of each affected screen, in the PR description and on the Linear ticket. `/ship` takes them.

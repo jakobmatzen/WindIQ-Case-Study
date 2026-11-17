@@ -5,7 +5,7 @@ All versions of the WindIQ case study. Newest first. Process: [docs/WORKFLOW.md]
 ## v1.0.0-beta.1 – 2026-11-17
 
 - Workflow rules for branches, merges and versioning (`docs/WORKFLOW.md`)
-- Project skills `/ship`, `/release` and `commit`
+- Project skills `/ship`, `/release` and `commit`; UI PRs carry screenshots
 - This changelog, starting with the 0.1.0 foundation
 - German README as the project guide, mirrored in Linear
 - Branch protection for `dev`, ESLint ignores the worker bundle
