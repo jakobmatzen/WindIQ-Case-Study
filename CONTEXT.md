@@ -97,9 +97,10 @@ Diese Punkte ergeben sich aus der Spezifikation und müssen im Code behandelt we
 
 Ein voller Abruf (8.707 Stundenwerte) zeigt zusätzlich:
 
-- **Fehlerwert `-999`** (42 Werte) und **unmögliche Spitzen** von 60–83 m/s (13 Werte): Plausibilitätsprüfung nötig.
+- **Fehlerwert `-999`** (42 Werte), **unmögliche Spitzen** von 60–83 m/s (13 Werte) und **negative Werte** bis −2,9 m/s (17 Werte): Plausibilitätsprüfung nötig.
 - **`km/h`** kommt tatsächlich vor (349 Werte, plausibel nach Umrechnung ÷ 3,6). Strings sind sauber numerisch (`"6.69"`).
 - **Gemischte Zeitzonen** (`Z`, `+00:00`, `+02:00`): vor dem Upsert auf UTC normalisieren, sonst entstehen doppelte Stunden.
+- **Doppelt gelieferte Stunden** (19): dieselbe Stunde einmal als `Z`, einmal als `+00:00`. Pro Stunde bleibt ein Wert, die höchste `version` gewinnt. Nach dem Zusammenführen sind es 8.688 verschiedene Stunden.
 - **HTTP 503** tritt schon beim normalen Blättern auf: Retries sind von Anfang an Pflicht.
 - Der Cursor ist base64 für `offset:<n>`. Ein Retry mit demselben Cursor ist sicher.
 
@@ -147,6 +148,9 @@ Offene Fragen an WindIQ und die jeweils geltende Arbeitsannahme stehen im README
 | **Volllaststunden** | AEP / Nennleistung: wie viele Stunden die Anlage bei voller Leistung laufen müsste, um den Jahresertrag zu erzeugen |
 | **Kapazitätsfaktor** | Volllaststunden / 8.760 h |
 | **Datenabdeckung** | Anteil der Stunden im Zeitraum, für die ein gültiger Messwert vorliegt |
+| **Fehlende Stunde** | Stunde im Zeitraum, für die die Quelle gar keinen Datensatz geliefert hat (Lücke) |
+| **Verworfene Stunde** | Stunde mit Datensatz, dessen Wert unbrauchbar ist (leer, `-999`, unplausibel, unbekannte Einheit) |
+| **Hochrechnung** | Ertrag der gültigen Stunden × 8.760 / Anzahl gültiger Stunden, damit Lücken das Jahr nicht kleiner rechnen |
 | **Ertragsgutachten** | Fachgutachten über den erwarteten Ertrag eines Standorts. In Deutschland nach Richtlinie **FGW-TR6**. |
 | **bankfähig** | Gutachten, das Banken für die Finanzierung akzeptieren (akkreditiertes Büro, z. B. DAkkS / ISO/IEC 17025) |
 | **Gutachterbüro** | Ingenieurbüro, das Windgutachten erstellt |

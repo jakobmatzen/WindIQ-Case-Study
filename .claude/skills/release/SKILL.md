@@ -55,7 +55,7 @@ Title: `v<version>`
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ````
 
-Fill in the real PR number afterwards with `gh pr edit`. Wait for CI, then give the user the URL and wait for "merge #<n>".
+Fill in the real PR number afterwards with `gh pr edit`. Wait for CI as in `/ship` step 7, then give the user the URL and wait for "merge #<n>".
 
 ## 4. Merge and verify the deploy
 

@@ -94,7 +94,7 @@ On "go":
 1. Push, then `gh pr create --base <target> --title "v<version>" --body-file <file>`.
 2. Fill the real PR number into the squash commit footer (`gh pr edit <n> --body-file <file>`). With screenshots, embed each one in the same edit as `![<screen>](https://raw.githubusercontent.com/<owner>/<repo>/<commit sha>/docs/screenshots/jak-<n>/<screen>.png)`. The commit SHA keeps the link valid after the squash merge.
 3. Linear: ticket → "In Review", attach the PR link. With screenshots, upload each one (`prepare_file_upload`) and add them to the ticket description under "Screenshots".
-4. Wait for CI (`gh pr checks <n> --watch`), then give the user the PR URL and the CI result. The user reviews.
+4. Wait for CI: right after creation `gh pr checks` reports no checks yet, so first wait until the `check` job appears (`until gh pr checks <n> 2>/dev/null | grep -qP '^check\t'; do sleep 5; done`), then `gh pr checks <n> --watch`. Give the user the PR URL and the CI result. The user reviews.
 
 ## 8. Merge
 

@@ -72,9 +72,11 @@ Ein vollständiger Abruf (17.11., 8.707 Stundenwerte über ein Jahr) zeigt, womi
 | Werte in km/h statt m/s | 349 Werte (≈ 4 %) | angedeutet |
 | Fehlerwert `-999` | 42 Werte | nein |
 | unmögliche Spitzen (60–83 m/s) | 13 Werte | nein |
+| negative Windgeschwindigkeit (bis −2,9 m/s) | 17 Werte | nein |
 | Lücke | einmal 72 Stunden (April) | ja |
 | nachträgliche Korrekturen | ≈ 1.650 Werte, teils Tage später | ja |
 | gemischte Zeitzonen (`Z`, `+02:00`) | ein Sommermonat | nein |
+| doppelt gelieferte Stunden (einmal `Z`, einmal `+00:00`) | 19 Stunden | nein |
 | kurzzeitige Ausfälle (HTTP 503) | einmal beim Abruf | nein |
 | Anlagen- und Standortdaten | bereits Version 47 | ja |
 
@@ -93,12 +95,13 @@ Bis eine Antwort kommt, gilt jeweils die Arbeitsannahme.
 | Frage | Arbeitsannahme |
 | --- | --- |
 | Ist `-999` ein Fehlercode? | ja, der Wert wird verworfen |
+| Sind negative Werte ein Messfehler oder Windstille? | Messfehler, der Wert wird verworfen. Für den Ertrag fast egal: sie liegen ohnehin unter Cut-in. |
 | Ab welcher Windgeschwindigkeit ist ein Wert unplausibel? | über 40 m/s wird verworfen |
-| Wie gehen fehlende oder verworfene Werte in den Jahresertrag ein: auslassen oder auf ein volles Jahr hochrechnen? | noch offen, wird mit der Berechnung festgelegt. Die Datenabdeckung wird in jedem Fall angezeigt. |
+| Wie gehen fehlende oder verworfene Werte in den Jahresertrag ein: auslassen oder auf ein volles Jahr hochrechnen? hochrechnen: Summe der gültigen Stunden × 8.760 / Anzahl gültiger Stunden. Die Datenabdeckung steht immer daneben, unter 90 % mit Warnung. |
 | Kommen weitere Einheiten als m/s und km/h vor? | km/h wird umgerechnet, unbekannte Einheiten werden verworfen |
 | „Letzte 12 Monate“: rollierend oder Kalendermonate? | rollierend, die letzten 8.760 Stunden bis zum neuesten Wert |
 | Kennlinie zwischen den Stützpunkten interpolieren? | ja, linear. Unter Cut-in und über Cut-out ist die Leistung 0. |
-| Sollen frühere Ergebnisse gespeichert werden (P50/P90 im Zeitverlauf)? | noch offen |
+| Sollen frühere Ergebnisse gespeichert werden (P50/P90 im Zeitverlauf)? | ja, ein neues Ergebnis, sobald sich Messwerte, Anlage oder Standort ändern |
 
 ## Releases
 
