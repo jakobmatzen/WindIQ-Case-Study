@@ -2,6 +2,13 @@
 
 All versions of the WindIQ case study. Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0-beta.3 – 2026-11-17
+
+- Architecture with fixed layers in `docs/ARCHITECTURE.md`, enforced by ESLint
+- `sync_runs` access moved into a db repository; data access layer `src/server` for the web app
+- Prettier with Tailwind class sorting and `noUncheckedIndexedAccess`, both checked in CI
+- `/ship` reviews every branch with `code-review` and `simplify` before the PR
+
 ## v1.0.0-beta.2 – 2026-11-17
 
 - PRs are merged by Claude on the user's "merge #N", with the exact squash commit message
