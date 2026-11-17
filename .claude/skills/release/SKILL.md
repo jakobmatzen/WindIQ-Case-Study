@@ -55,15 +55,16 @@ Title: `v<version>`
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ````
 
-Fill in the real PR number afterwards with `gh pr edit`. Give the user the URL and wait: the user merges with squash.
+Fill in the real PR number afterwards with `gh pr edit`. Wait for CI, then give the user the URL and wait for "merge #<n>".
 
-## 4. Verify the deploy
+## 4. Merge and verify the deploy
 
-When the user reports the merge:
+On "merge #<n>":
 
-1. `gh run list --branch main --workflow Deploy --limit 1`, then `gh run watch <id>` until it finishes.
-2. Red: report the failing job and its log, and stop.
-3. Green: ask for go to tag the squash commit `v<version>` on `main` and push the tag.
+1. `gh pr merge <n> --squash --subject "v<version>" --body-file <file>` with exactly the "Squash commit" block. `git switch dev`, `git branch -D release/v<version>`.
+2. `gh run list --branch main --workflow Deploy --limit 1`, then `gh run watch <id>` until it finishes.
+3. Red: report the failing job and its log, and stop.
+4. Green: ask for go to tag the squash commit `v<version>` on `main` and push the tag.
 
 ## Forward integration
 
@@ -74,12 +75,13 @@ After a green deploy on `main` (release or hotfix):
 ```markdown
 Forward integration of `main` into `dev` after v<version>.
 
-**Merge with "Create a merge commit", not squash**, so the branches share history again.
+Lands as a merge commit, not a squash, so the branches share history again.
 
 #<release or hotfix PR number>
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
-2. On "go": `gh pr create --base dev --head main …`. Give the user the URL.
-3. Linear: set the tickets in this release to "Done" if they are not already.
+2. On "go": `gh pr create --base dev --head main …`, wait for CI, give the user the URL.
+3. On "merge #<n>": `gh pr merge <n> --merge --subject "v<version>" --body "#<release or hotfix PR number>"`, then `git switch dev && git pull --ff-only`.
+4. Linear: set the tickets in this release to "Done" if they are not already.

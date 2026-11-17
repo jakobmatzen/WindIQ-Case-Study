@@ -9,6 +9,7 @@ Each of these needs the user's explicit go, every time:
 - `git push` (branches and tags)
 - creating or switching branches
 - changing GitHub or Linear settings (rulesets, repo settings)
+- merging a PR: the user reviews it, then says "merge #N"
 
 Committing on a feature branch needs no go: commit at logical checkpoints with the `commit` skill and tell the user.
 
@@ -27,7 +28,7 @@ hotfix branch (from main) ──/ship──► PR → main           (squash), t
 - **Feature branch**: named exactly as Linear's `gitBranchName` for the ticket. Stays local until `/ship`.
 - **Squash** for every PR into `dev` or `main`, so each lands as one commit.
 - **Forward integration** `main → dev` is always a real merge commit: a squash would leave the merge base behind and the branches would drift.
-- The user merges every PR by hand. Open PRs, never merge them.
+- **Merging** happens on the user's "merge #N", via `gh pr merge`: `--squash` with the exact title and body of the PR's "Squash commit" block for PRs into `dev` or `main`, `--merge` for forward integration. GitHub then deletes the head branch; delete the local one too and `git switch dev && git pull`.
 
 ## Commit titles on `dev` and `main`
 
@@ -42,7 +43,7 @@ v1.0.0-beta.3
 #12
 ```
 
-Title is the version, body is bullets, footer is the PR number with `#`. Each PR description carries this message ready to paste into GitHub's squash dialog.
+Title is the version, body is bullets, footer is the PR number with `#`. Each PR description carries this message in its "Squash commit" block, so the user sees before merging exactly what will land.
 
 ## Versioning
 

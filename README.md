@@ -43,7 +43,7 @@ Die Arbeit läuft gemeinsam mit Claude Code. Damit jeder Schritt gleich abläuft
 | `/release` | `dev` live bringen: Release-PR nach `main`, Deploy abwarten, Rückführung nach `dev` |
 | `commit` | einheitliches Format für Commits |
 
-Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freigabe. Die PRs prüfe und merge ich selbst. Regeln im Detail: [docs/WORKFLOW.md](docs/WORKFLOW.md).
+Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freigabe. Jeden PR prüfe ich selbst, gemergt wird erst auf meine Freigabe („merge #N“). Claude merged dann mit exakt der vorbereiteten Commit-Nachricht. Regeln im Detail: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
 ## 4. Wichtige Entscheidungen
 

@@ -83,5 +83,13 @@ On "go":
 1. Push, then `gh pr create --base <target> --title "v<version>" --body-file <file>`.
 2. Fill the real PR number into the squash commit footer (`gh pr edit <n> --body-file <file>`). With screenshots, embed each one in the same edit as `![<screen>](https://raw.githubusercontent.com/<owner>/<repo>/<commit sha>/docs/screenshots/jak-<n>/<screen>.png)`. The commit SHA keeps the link valid after the squash merge.
 3. Linear: ticket → "In Review", attach the PR link. With screenshots, upload each one (`prepare_file_upload`) and add them to the ticket description under "Screenshots".
-4. Give the user the PR URL. Leave the PR open: the user reviews and merges by hand, using the squash commit block.
-5. **hotfix** only: remind the user that after merging, `/release` does the forward integration `main → dev` (its "Forward integration" section).
+4. Wait for CI (`gh pr checks <n> --watch`), then give the user the PR URL and the CI result. The user reviews.
+
+## 7. Merge
+
+On "merge #<n>":
+
+1. `gh pr merge <n> --squash --subject "v<version>" --body-file <file>`, where the file holds exactly the code block under "Squash commit" (bullets and `#<n>` footer).
+2. `git switch dev && git pull --ff-only` (**hotfix**: `main`), then `git branch -D <branch>`. GitHub deletes the remote branch.
+3. Show the user the landed commit (`git log -1`). Linear moves the ticket to "Done" via the GitHub integration; set it if it did not.
+4. **hotfix** only: continue with `/release` → "Forward integration".
