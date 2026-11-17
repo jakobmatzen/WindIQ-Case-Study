@@ -1,4 +1,15 @@
-import { integer, pgEnum, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  date,
+  doublePrecision,
+  integer,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  serial,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+import { MEASUREMENT_STATUSES } from "@/core/measurement";
 
 /**
  * Edit/extend the schema here, then run `bun run db:generate --name <change>`
@@ -27,3 +38,42 @@ export type SyncRun = typeof syncRuns.$inferSelect;
 
 /** Worker jobs that record runs in `sync_runs`. */
 export type SyncJob = SyncRun["job"];
+
+/** Measurement masts. One row per mast; readings reference it, so more masts need no schema change. */
+export const masts = pgTable("masts", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  latitude: doublePrecision("latitude").notNull(),
+  longitude: doublePrecision("longitude").notNull(),
+  measurementHeightM: doublePrecision("measurement_height_m").notNull(),
+  operator: text("operator").notNull(),
+  commissionedAt: date("commissioned_at").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}).enableRLS();
+
+export const measurementStatus = pgEnum("measurement_status", MEASUREMENT_STATUSES);
+
+/**
+ * Hourly wind readings, checked by core/measurement. One row per mast and hour (UTC);
+ * the newest version of a reading wins. The raw value is kept next to the result for traceability.
+ */
+export const measurements = pgTable(
+  "measurements",
+  {
+    mastId: text("mast_id")
+      .notNull()
+      .references(() => masts.id),
+    hour: timestamp("hour", { withTimezone: true }).notNull(),
+    status: measurementStatus("status").notNull(),
+    /** m/s at measurement height; null when the reading is rejected. */
+    windSpeedMs: doublePrecision("wind_speed_ms"),
+    rawValue: text("raw_value"),
+    unit: text("unit").notNull(),
+    windDirectionDeg: doublePrecision("wind_direction_deg"),
+    version: integer("version").notNull(),
+    /** `updated_at` of the reading at the source. */
+    sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }).notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.mastId, t.hour] })],
+).enableRLS();
