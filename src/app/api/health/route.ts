@@ -1,7 +1,6 @@
 import { connection } from "next/server";
-import { and, desc, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
 import { evaluateSyncFreshness } from "@/lib/health";
+import { getLastMeasurementSync } from "@/server/health";
 
 /**
  * Readiness: is the system actually doing its job?
@@ -13,14 +12,8 @@ export async function GET() {
   const maxAge = Number(process.env.HEALTH_MAX_SYNC_AGE_MINUTES) || undefined;
 
   try {
-    const [last] = await getDb()
-      .select({ finishedAt: schema.syncRuns.finishedAt })
-      .from(schema.syncRuns)
-      .where(and(eq(schema.syncRuns.job, "measurements"), eq(schema.syncRuns.status, "success")))
-      .orderBy(desc(schema.syncRuns.finishedAt))
-      .limit(1);
-
-    const sync = evaluateSyncFreshness(last?.finishedAt ?? null, new Date(), maxAge);
+    const lastSuccessAt = await getLastMeasurementSync();
+    const sync = evaluateSyncFreshness(lastSuccessAt, new Date(), maxAge);
     const healthy = sync.status === "ok";
 
     return Response.json(

@@ -20,7 +20,15 @@ Turns a finished feature or hotfix branch into an open PR. Background: `docs/WOR
 
 Done when you can name ticket, mode and target branch.
 
-## 2. Check
+## 2. Review
+
+1. Invoke the `code-review` skill at `medium` on this branch against its target (`origin/<target>...HEAD`). Fix every confirmed finding; list the ones you leave, with the reason, for the PR's "Review notes".
+2. Invoke the `simplify` skill on the same diff and keep the cleanups that make the code clearer.
+3. Commit the fixes with `commit`.
+
+Done when no confirmed finding is left unfixed or unexplained.
+
+## 3. Check
 
 Run every step of `.github/workflows/ci.yml` locally, in its order, including the migration drift check and both builds. Afterwards remove any migration the drift check generated.
 
@@ -29,7 +37,7 @@ Run every step of `.github/workflows/ci.yml` locally, in its order, including th
 
 Done when every CI step passes in one uninterrupted run.
 
-## 3. Version
+## 4. Version
 
 Current version: `package.json` `version`.
 
@@ -38,14 +46,14 @@ Current version: `package.json` `version`.
 
 Write the new version to `package.json`.
 
-## 4. Document
+## 5. Document
 
 1. `CHANGELOG.md`: new section at the top, `## v<version> – <today YYYY-MM-DD>`, two to five short bullets about what this ticket delivered.
 2. Guide (`README.md` and the Linear project description of P-JAK-1, kept identical apart from "Lokal starten"): add what this ticket changed that matters for explaining the project: a decision and why, a new building block, a new open question with its working assumption. Skip if nothing qualifies. German, short.
 3. **UI changed** (anything under `src/app` or `src/components` that renders): screenshot every affected screen in the running app, light mode, desktop width plus one phone width. Use Playwright (`bunx playwright screenshot`); if no browser is installed yet, ask before installing Chromium. Save them as `docs/screenshots/jak-<n>/<screen>.png`.
 4. Commit with `commit`: title `Prepare v<version>`.
 
-## 5. Plan
+## 6. Plan
 
 Show the user, then wait for "go":
 
@@ -62,8 +70,11 @@ Show the user, then wait for "go":
 
 Linear: JAK-<n>
 
+## Review notes
+<only when findings were left open: finding and reason>
+
 ## Screenshots
-<only when UI changed: one image per screen, see step 6>
+<only when UI changed: one image per screen, taken in step 5, embedded in step 7>
 
 ## Squash commit
 Title: `v<version>`
@@ -76,7 +87,7 @@ Title: `v<version>`
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ````
 
-## 6. Open
+## 7. Open
 
 On "go":
 
@@ -85,7 +96,7 @@ On "go":
 3. Linear: ticket → "In Review", attach the PR link. With screenshots, upload each one (`prepare_file_upload`) and add them to the ticket description under "Screenshots".
 4. Wait for CI (`gh pr checks <n> --watch`), then give the user the PR URL and the CI result. The user reviews.
 
-## 7. Merge
+## 8. Merge
 
 On "merge #<n>":
 

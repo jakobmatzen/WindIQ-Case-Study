@@ -5,8 +5,7 @@
  *   local:  bun run worker
  *   docker: bun worker.js  (bundled by `bun run build:worker`)
  */
-import { eq } from "drizzle-orm";
-import { getDb, schema } from "../db";
+import { failSyncRun, finishSyncRun, startSyncRun, type SyncJob } from "@/db";
 
 const INTERVAL_MS = Number(process.env.SYNC_INTERVAL_MS) || 15 * 60_000;
 const HEARTBEAT_FILE = process.env.WORKER_HEARTBEAT_FILE ?? "/tmp/worker-heartbeat";
@@ -19,23 +18,16 @@ function log(level: "info" | "error", msg: string, extra: Record<string, unknown
 }
 
 /** Records a sync run in `sync_runs` around the given job function. */
-async function runJob(job: string, fn: () => Promise<number>) {
-  const db = getDb();
-  const [run] = await db.insert(schema.syncRuns).values({ job }).returning({ id: schema.syncRuns.id });
+async function runJob(job: SyncJob, fn: () => Promise<number>) {
+  const runId = await startSyncRun(job);
   const started = Date.now();
   try {
     const items = await fn();
-    await db
-      .update(schema.syncRuns)
-      .set({ status: "success", finishedAt: new Date(), itemsProcessed: items })
-      .where(eq(schema.syncRuns.id, run.id));
+    await finishSyncRun(runId, items);
     log("info", "job succeeded", { job, items, durationMs: Date.now() - started });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await db
-      .update(schema.syncRuns)
-      .set({ status: "error", finishedAt: new Date(), error: message })
-      .where(eq(schema.syncRuns.id, run.id));
+    await failSyncRun(runId, message);
     log("error", "job failed", { job, error: message, durationMs: Date.now() - started });
   }
 }
