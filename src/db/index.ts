@@ -3,7 +3,7 @@ export { getDb } from "./client";
 export * as schema from "./schema";
 export type { SyncJob, SyncRun } from "./schema";
 export {
-  currentMast,
+  listMasts,
   measurementStatuses,
   newestMeasurementHour,
   upsertMast,

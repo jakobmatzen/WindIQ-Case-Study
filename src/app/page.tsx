@@ -33,7 +33,7 @@ async function DataCoverage() {
         <dd className="tabular-nums">{count.format(coverage.missingHours)}</dd>
         <dt>Zeitraum</dt>
         <dd>
-          {dateTime.format(coverage.windowStart)} – {dateTime.format(coverage.windowEnd)}
+          {dateTime.format(coverage.window.start)} – {dateTime.format(coverage.window.end)}
         </dd>
       </dl>
     </section>

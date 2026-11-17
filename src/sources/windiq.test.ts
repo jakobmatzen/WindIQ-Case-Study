@@ -1,16 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { createWindiqSource } from "./windiq";
+import {
+  createWindiqSource,
+  type ApiMast,
+  type ApiMeasurement,
+  type ApiMeasurementPage,
+} from "./windiq";
 
-type ApiReading = {
-  timestamp: string;
-  wind_speed: number | string | null;
-  unit: string;
-  wind_direction_deg: number | null;
-  version: number;
-  updated_at: string;
-};
-
-const apiReading = (timestamp: string, wind_speed: ApiReading["wind_speed"] = 5): ApiReading => ({
+const apiReading = (
+  timestamp: string,
+  wind_speed: ApiMeasurement["wind_speed"] = 5,
+): ApiMeasurement => ({
   timestamp,
   wind_speed,
   unit: "m/s",
@@ -24,8 +23,9 @@ const apiReading = (timestamp: string, wind_speed: ApiReading["wind_speed"] = 5)
  * `failures` makes a request for that cursor fail with the given statuses first.
  */
 function fakeApi(options: {
-  pages: Record<string, { data: ApiReading[]; next_cursor: string | null }>;
+  pages: Record<string, ApiMeasurementPage>;
   failures?: Record<string, number[]>;
+  mast?: ApiMast;
 }) {
   const requests: { url: URL; authorization: string | null }[] = [];
   const failures = structuredClone(options.failures ?? {});
@@ -38,6 +38,7 @@ function fakeApi(options: {
     if (url.pathname === "/auth/token") {
       return Response.json({ access_token: "token-1", token_type: "Bearer", expires_in: 3600 });
     }
+    if (url.pathname === "/v1/mast" && options.mast) return Response.json(options.mast);
     if (url.pathname === "/v1/measurements") {
       const cursor = url.searchParams.get("cursor") ?? "";
       const failure = failures[cursor]?.shift();
@@ -71,26 +72,20 @@ async function collect<T>(pages: AsyncIterable<T[]>): Promise<T[]> {
 
 describe("WindIQ source: mast", () => {
   test("reads the measurement mast", async () => {
-    const api = fakeApi({ pages: {} });
-    const fetch = async (input: string | URL | Request, init?: RequestInit) =>
-      new URL(String(input)).pathname === "/v1/mast"
-        ? Response.json({
-            id: "WIQ-MM-01",
-            name: "Messmast Spreewald",
-            latitude: 51.8732,
-            longitude: 14.0412,
-            measurement_height_m: 100.0,
-            operator: "WindIQ",
-            commissioned_at: "2023-04-01",
-          })
-        : api.fetch(input, init);
+    const api = fakeApi({
+      pages: {},
+      mast: {
+        id: "WIQ-MM-01",
+        name: "Messmast Spreewald",
+        latitude: 51.8732,
+        longitude: 14.0412,
+        measurement_height_m: 100.0,
+        operator: "WindIQ",
+        commissioned_at: "2023-04-01",
+      },
+    });
 
-    const mast = await createWindiqSource({
-      baseUrl: "https://windiq.test",
-      clientId: "id",
-      clientSecret: "secret",
-      fetch: fetch as typeof globalThis.fetch,
-    }).fetchMast();
+    const mast = await source(api).fetchMast();
 
     expect(mast).toEqual({
       id: "WIQ-MM-01",

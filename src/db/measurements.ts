@@ -1,4 +1,5 @@
-import { and, between, desc, eq, lte, sql } from "drizzle-orm";
+import { and, asc, between, desc, eq, lte, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { HourWindow } from "@/core/coverage";
 import type { Mast } from "@/core/mast";
 import type { CheckedMeasurement, MeasurementStatus } from "@/core/measurement";
@@ -10,6 +11,9 @@ import { masts, measurements } from "./schema";
 // Hours from the future are stored but never count as "newest": one bad timestamp must not
 // push the next `since` and the coverage window into the future.
 const notInFuture = lte(measurements.hour, sql`now()`);
+
+/** The incoming value of a column inside ON CONFLICT DO UPDATE, named from the schema. */
+const excluded = (column: AnyPgColumn) => sql.raw(`excluded."${column.name}"`);
 
 export async function upsertMast(mast: Mast): Promise<void> {
   const values = { ...mast, updatedAt: new Date() };
@@ -53,40 +57,25 @@ export async function upsertMeasurements(
     .onConflictDoUpdate({
       target: [measurements.mastId, measurements.hour],
       set: {
-        status: sql`excluded.status`,
-        windSpeedMs: sql`excluded.wind_speed_ms`,
-        rawValue: sql`excluded.raw_value`,
-        unit: sql`excluded.unit`,
-        windDirectionDeg: sql`excluded.wind_direction_deg`,
-        version: sql`excluded.version`,
-        sourceUpdatedAt: sql`excluded.source_updated_at`,
+        status: excluded(measurements.status),
+        windSpeedMs: excluded(measurements.windSpeedMs),
+        rawValue: excluded(measurements.rawValue),
+        unit: excluded(measurements.unit),
+        windDirectionDeg: excluded(measurements.windDirectionDeg),
+        version: excluded(measurements.version),
+        sourceUpdatedAt: excluded(measurements.sourceUpdatedAt),
         syncedAt: sql`now()`,
       },
-      setWhere: sql`excluded.version > ${measurements.version}`,
+      setWhere: sql`${excluded(measurements.version)} > ${measurements.version}`,
     })
     .returning({ hour: measurements.hour });
+
   return written.length;
 }
 
-/** Mast whose readings reach furthest, with that newest hour. The UI shows this one mast for now. */
-export async function currentMast(): Promise<{
-  mastId: string;
-  name: string;
-  newestHour: Date;
-} | null> {
-  const [row] = await getDb()
-    .select({
-      mastId: measurements.mastId,
-      name: masts.name,
-      newestHour: sql<Date>`max(${measurements.hour})`.mapWith(measurements.hour),
-    })
-    .from(measurements)
-    .innerJoin(masts, eq(masts.id, measurements.mastId))
-    .where(notInFuture)
-    .groupBy(measurements.mastId, masts.name)
-    .orderBy(desc(sql`max(${measurements.hour})`))
-    .limit(1);
-  return row ?? null;
+/** All masts, by id. */
+export async function listMasts(): Promise<{ id: string; name: string }[]> {
+  return getDb().select({ id: masts.id, name: masts.name }).from(masts).orderBy(asc(masts.id));
 }
 
 /** Hour and status of every stored reading of a mast inside the window. */

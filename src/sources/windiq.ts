@@ -13,7 +13,8 @@ export type WindiqConfig = {
   sleep?: (ms: number) => Promise<void>;
 };
 
-type ApiMeasurement = {
+/** Response shapes as the WindIQ API documents them (exported for the simulated API in tests). */
+export type ApiMeasurement = {
   timestamp: string;
   wind_speed: number | string | null;
   unit: string;
@@ -22,7 +23,7 @@ type ApiMeasurement = {
   updated_at: string;
 };
 
-type ApiMast = {
+export type ApiMast = {
   id: string;
   name: string;
   latitude: number;
@@ -32,7 +33,7 @@ type ApiMast = {
   commissioned_at: string;
 };
 
-type ApiMeasurementPage = { data: ApiMeasurement[]; next_cursor: string | null };
+export type ApiMeasurementPage = { data: ApiMeasurement[]; next_cursor: string | null };
 
 const PAGE_SIZE = 500;
 
@@ -74,10 +75,7 @@ export function createWindiqSource(config: WindiqConfig): MeasurementSource {
   }
 
   return {
-    async fetchMast() {
-      const m: ApiMast = await get("/v1/mast", {});
-      return toMast(m);
-    },
+    fetchMast: async () => toMast(await get<ApiMast>("/v1/mast", {})),
 
     async *fetchMeasurements({ since }) {
       let cursor: string | null = null;
