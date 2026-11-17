@@ -56,6 +56,7 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 17.11. | Erst echte API-Daten ansehen, dann das Schema entwerfen | Die Daten enthalten Fehler, die nicht in der Doku stehen (siehe 5.) |
 | 17.11. | Ticket = Branch = PR = Version, Squash auf `dev` und `main` | jede Änderung ist einem Ticket, einer Version und einem PR zugeordnet |
 | 17.11. | Offene Fragen blockieren nicht | Mit einer dokumentierten Annahme weiterarbeiten (siehe 7.) und anpassen, sobald WindIQ antwortet |
+| 17.11. | PRs merged Claude erst auf meine Freigabe | Titel und Nachricht stimmen immer, nichts muss von Hand kopiert werden. Die Kontrolle bleibt bei mir. |
 
 ## 5. Befunde aus der API
 
