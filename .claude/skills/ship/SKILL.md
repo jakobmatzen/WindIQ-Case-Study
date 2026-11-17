@@ -74,7 +74,7 @@ Linear: JAK-<n>
 <only when findings were left open: finding and reason>
 
 ## Screenshots
-<only when UI changed: one image per screen, see step 7>
+<only when UI changed: one image per screen, taken in step 5, embedded in step 7>
 
 ## Squash commit
 Title: `v<version>`

@@ -20,16 +20,16 @@ WindIQ API ─► sources ─► core (parse, validate, calculate) ─► db
 
 | Folder | Role | May import |
 | --- | --- | --- |
-| `src/core` | Domain logic as **pure functions**: parsing and validating measurements, height correction, power curve, AEP, P50/P90, data coverage. No I/O, no framework. | npm libraries without I/O |
-| `src/sources` | One adapter per data source, behind a shared interface. Talks HTTP, handles auth, retries and paging, and maps responses into `core` types. | `core` |
-| `src/db` | Drizzle schema, client and repositories (upserts, queries). Shared by worker and web. | `core` |
+| `src/core` | Domain logic as **pure functions**: parsing and validating measurements, height correction, power curve, AEP, P50/P90, data coverage. No I/O, no framework. | `lib`, npm libraries without I/O |
+| `src/sources` | One adapter per data source, behind a shared interface. Talks HTTP, handles auth, retries and paging, and maps responses into `core` types. | `core`, `lib` |
+| `src/db` | Drizzle schema, client and repositories (upserts, queries). Shared by worker and web. | `core`, `lib` |
 | `src/worker` | Orchestration: fetch from `sources`, run `core`, write to `db`, log every run in `sync_runs`. | `sources`, `core`, `db`, `lib` |
 | `src/server` | **Data Access Layer** for the web app: `import "server-only"`, returns small DTOs for pages. The only way the web app reaches the database. | `db`, `core`, `lib` |
 | `src/app` | Routes: pages (Server Components) and route handlers. Read data only through `server`. | `server`, `components`, `core`, `lib` |
 | `src/components` | UI. `ui/` holds shadcn components. Receives data as props. | `components`, `core`, `lib` |
-| `src/lib` | Small framework-free helpers (`cn`, health evaluation). | — |
+| `src/lib` | Small framework-free helpers (`cn`, health evaluation). Importable from every layer. | nothing internal |
 
-Imports across layers use the `@/` alias; relative imports stay inside a layer.
+Imports across layers use the `@/` alias; relative imports stay inside a layer. ESLint checks both forms.
 
 ## Rules
 

@@ -1,9 +1,10 @@
 import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import type { SyncJob } from "@/db/schema";
 
 /** When the given worker job last finished successfully, or null if it never did. */
-export async function getLastSuccessfulSync(job: string): Promise<Date | null> {
+export async function getLastSuccessfulSync(job: SyncJob): Promise<Date | null> {
   const [last] = await getDb()
     .select({ finishedAt: schema.syncRuns.finishedAt })
     .from(schema.syncRuns)
