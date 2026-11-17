@@ -21,7 +21,11 @@ function log(level: "info" | "error", msg: string, extra: Record<string, unknown
 /** Records a sync run in `sync_runs` around the given job function. */
 async function runJob(job: string, fn: () => Promise<number>) {
   const db = getDb();
-  const [run] = await db.insert(schema.syncRuns).values({ job }).returning({ id: schema.syncRuns.id });
+  const [run] = await db
+    .insert(schema.syncRuns)
+    .values({ job })
+    .returning({ id: schema.syncRuns.id });
+  if (!run) throw new Error(`could not record sync run for job "${job}"`);
   const started = Date.now();
   try {
     const items = await fn();
