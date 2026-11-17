@@ -29,7 +29,7 @@ Show the user, then wait for "go":
 On "go":
 
 1. Create and switch to `release/v<version>`.
-2. Run every step of `.github/workflows/ci.yml` locally, as in `/ship` step 2.
+2. Run every step of `.github/workflows/ci.yml` locally, as in `/ship` step 3.
 3. Set `package.json` `version` to `<version>`.
 4. `CHANGELOG.md`: new top section `## v<version> – <today>`, bullets summarising the betas (one per beta is fine).
 5. Guide (README and Linear P-JAK-1): add a line under "Releases": version, date, one sentence on what went live.

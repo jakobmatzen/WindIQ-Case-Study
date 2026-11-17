@@ -20,6 +20,7 @@ WindIQ Mock-API ──► Worker ──► Postgres ──► Web-App (Dashboard
 - **Worker** und **Web-App** laufen getrennt. Fällt die API aus, zeigt das Dashboard weiter das zuletzt berechnete Ergebnis.
 - **Ein Server** (Hetzner) mit Docker und Caddy (HTTPS) betreibt zwei Umgebungen: `dev` zum Testen und `prod` für den Live-Betrieb. Beide nutzen dasselbe Image, nur die Konfiguration unterscheidet sich.
 - **Technik:** Next.js 16, React 19, Tailwind, Drizzle, Supabase Postgres, bun, GitHub Actions.
+- **Feste Schichten:** Die Kernlogik (Werte prüfen, Ertrag berechnen) besteht aus reinen Funktionen ohne Datenbank- oder API-Zugriff. Jede Datenquelle steckt hinter einer gemeinsamen Schnittstelle, ein weiterer Messmast ist nur ein neuer Adapter. ESLint prüft die Grenzen automatisch. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## 3. Workflow & Skills
 
@@ -55,6 +56,9 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 16.11. | Kein Login | das Dashboard ist öffentlich und nur lesend |
 | 17.11. | Erst echte API-Daten ansehen, dann das Schema entwerfen | Die Daten enthalten Fehler, die nicht in der Doku stehen (siehe 5.) |
 | 17.11. | Ticket = Branch = PR = Version, Squash auf `dev` und `main` | jede Änderung ist einem Ticket, einer Version und einem PR zugeordnet |
+| 17.11. | Feste Schichten, Grenzen per ESLint geprüft | Die Kernlogik ist testbar und Schritt für Schritt nachvollziehbar. Neue Datenquellen brauchen keinen Umbau. |
+| 17.11. | Kernlogik test-first, gegen echte API-Daten und die Referenzwerte der Doku | Wenn die Zahlen falsch sind, ist alles andere wertlos |
+| 17.11. | Automatischer Code-Review vor jedem PR | eine zweite Prüfung vor meinem eigenen Review |
 | 17.11. | Offene Fragen blockieren nicht | Mit einer dokumentierten Annahme weiterarbeiten (siehe 7.) und anpassen, sobald WindIQ antwortet |
 | 17.11. | PRs merged Claude erst auf meine Freigabe | Titel und Nachricht stimmen immer, nichts muss von Hand kopiert werden. Die Kontrolle bleibt bei mir. |
 

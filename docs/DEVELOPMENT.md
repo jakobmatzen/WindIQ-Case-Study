@@ -10,6 +10,7 @@ bun install
 bun dev                      # web app on http://localhost:3000
 bun run worker               # background worker (second terminal)
 bun test                     # unit tests
+bun run format               # Prettier (CI runs format:check)
 ```
 
 ## Database (code-first with Drizzle)
@@ -31,7 +32,10 @@ All DB access goes through `getDb()` from `@/db` (Drizzle, server-side only). Th
 ## Layout
 
 ```
+src/core/            Pure domain logic (parse, validate, calculate)
+src/sources/         Data source adapters (WindIQ API)
 src/db/              Drizzle schema + client
+src/server/          Data access layer for the web app (server-only)
 src/worker/          Background worker (scheduled jobs, records runs in sync_runs)
 src/app/api/health/  Health checks: /live (process up) and / (DB + sync freshness)
 drizzle/             Generated SQL migrations (commit these)
@@ -39,6 +43,8 @@ deploy/              docker-compose, Caddyfile, one-time server setup script
 .github/workflows/   ci.yml (PRs), deploy.yml (dev/main)
 .claude/skills/      Project skills: /ship, /release, commit
 ```
+
+Layer rules: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Deployment
 

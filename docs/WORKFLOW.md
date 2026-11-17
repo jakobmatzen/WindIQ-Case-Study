@@ -53,6 +53,12 @@ Title is the version, body is bullets, footer is the PR number with `#`. Each PR
 - New development after a release starts from a new milestone (e.g. `v2.0.0` → `v2.0.0-beta.1`).
 - `package.json` `version` and the newest `CHANGELOG.md` heading always match. Git tags only for releases on `main`.
 
+## Code quality
+
+- Code follows `docs/ARCHITECTURE.md`; ESLint enforces its layer boundaries.
+- `src/core` is written test-first with the `mattpocock-skills:tdd` skill.
+- `/ship` runs an automatic review (`code-review`, `simplify`) before the PR; the user reviews after.
+
 ## Documentation
 
 - **`CHANGELOG.md`**: newest first, `## vX.Y.Z-beta.N – YYYY-MM-DD`, plain short bullets.
