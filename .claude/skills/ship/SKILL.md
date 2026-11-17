@@ -15,7 +15,8 @@ Turns a finished feature or hotfix branch into an open PR. Background: `docs/WOR
 3. Pick the **mode** from the branch's base:
    - **feature**: `origin/dev` is an ancestor of `HEAD` → PR targets `dev`.
    - **hotfix**: `origin/main` is an ancestor, `origin/dev` is not → PR targets `main`.
-   - Both or neither: ask the user.
+   - Both (`dev` and `main` on the same commit): **feature**, unless the branch was cut from `main` for a hotfix.
+   - Neither: ask the user.
 
 Done when you can name ticket, mode and target branch.
 
