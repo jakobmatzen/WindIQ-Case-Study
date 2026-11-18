@@ -13,13 +13,21 @@ export {
   upsertMast,
   upsertMeasurements,
 } from "./measurements";
-export { failSyncRun, finishSyncRun, lastSuccessfulSync, startSyncRun } from "./sync-runs";
+export {
+  failSyncRun,
+  finishSyncRun,
+  lastSuccessfulSync,
+  recentSyncRuns,
+  startSyncRun,
+} from "./sync-runs";
 export {
   insertYieldResult,
   latestYieldResult,
   latestYieldResultDetails,
   saveSiteVersion,
   saveTurbineVersion,
+  yieldHistory,
   type StoredYieldResult,
+  type YieldHistoryPoint,
   type YieldResultDetails,
 } from "./yields";

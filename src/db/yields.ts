@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import type { Site } from "@/core/site";
 import type { Turbine } from "@/core/turbine";
 import type { YieldResult } from "@/core/yield";
@@ -128,4 +128,27 @@ export async function latestYieldResultDetails(mastId: string): Promise<YieldRes
     .orderBy(desc(yieldResults.id))
     .limit(1);
   return row ?? null;
+}
+
+/** P50/P90 of a stored result at the time it was calculated, for the trend chart. */
+export type YieldHistoryPoint = Pick<
+  StoredYieldResult,
+  "id" | "calculatedAt" | "windowEnd" | "p50Mwh" | "p90Mwh" | "turbineVersion" | "siteVersion"
+>;
+
+/** Every stored result of a mast, oldest first. One row per real change, so the list stays short. */
+export async function yieldHistory(mastId: string): Promise<YieldHistoryPoint[]> {
+  return getDb()
+    .select({
+      id: yieldResults.id,
+      calculatedAt: yieldResults.calculatedAt,
+      windowEnd: yieldResults.windowEnd,
+      p50Mwh: yieldResults.p50Mwh,
+      p90Mwh: yieldResults.p90Mwh,
+      turbineVersion: yieldResults.turbineVersion,
+      siteVersion: yieldResults.siteVersion,
+    })
+    .from(yieldResults)
+    .where(eq(yieldResults.mastId, mastId))
+    .orderBy(asc(yieldResults.id));
 }

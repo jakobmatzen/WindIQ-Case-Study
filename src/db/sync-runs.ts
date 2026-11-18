@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "./client";
-import { syncRuns, type SyncJob } from "./schema";
+import { syncRuns, type SyncJob, type SyncRun } from "./schema";
 
 /** Repository for `sync_runs`: every worker run is started, then finished or failed. */
 
@@ -48,4 +48,9 @@ export async function lastSuccessfulSync(job: SyncJob): Promise<Date | null> {
     .orderBy(desc(syncRuns.finishedAt))
     .limit(1);
   return last?.finishedAt ?? null;
+}
+
+/** The newest runs of all jobs, newest first. */
+export async function recentSyncRuns(limit: number): Promise<SyncRun[]> {
+  return getDb().select().from(syncRuns).orderBy(desc(syncRuns.startedAt)).limit(limit);
 }
