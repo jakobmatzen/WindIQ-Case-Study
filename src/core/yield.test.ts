@@ -128,12 +128,37 @@ describe("calculateYield", () => {
     });
   });
 
+  test("averages the wind at the mast over the valid hours in the window only", () => {
+    const window: HourWindow = {
+      start: newest,
+      end: new Date(newest.getTime() + 3 * HOUR_MS),
+      hours: 4,
+    };
+    const at = (i: number) => new Date(newest.getTime() + i * HOUR_MS);
+    const result = yieldOf(
+      [
+        { hour: new Date(newest.getTime() - HOUR_MS), ...valid(30) }, // outside the window
+        { hour: at(0), ...valid(4) },
+        { hour: at(1), ...rejected },
+        { hour: at(2), ...valid(8) },
+        // hour 3 missing
+      ],
+      window,
+    );
+
+    expect(result.meanWindSpeedMs).toBe(6);
+  });
+
   test("is 0, not NaN, when no hour is valid", () => {
     const result = yieldOf(hours(year, () => rejected));
 
     expect(result.grossAepMwh).toBe(0);
     expect(result.p50Mwh).toBe(0);
     expect(result.p90Mwh).toBe(0);
+  });
+
+  test("has no mean wind, rather than 0 m/s, when no hour is valid", () => {
+    expect(yieldOf(hours(year, () => rejected)).meanWindSpeedMs).toBeNull();
   });
 });
 

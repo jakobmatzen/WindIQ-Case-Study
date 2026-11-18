@@ -1,9 +1,9 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { Site } from "@/core/site";
 import type { Turbine } from "@/core/turbine";
 import type { YieldResult } from "@/core/yield";
 import { getDb } from "./client";
-import { siteVersions, turbineVersions, yieldResults } from "./schema";
+import { masts, siteVersions, turbineVersions, yieldResults } from "./schema";
 
 /** Repository for turbine and site snapshots and the yield results calculated from them. */
 
@@ -69,6 +69,7 @@ export async function insertYieldResult(
     missingHours: coverage.missingHours,
     coverageRatio: coverage.ratio,
     quality: result.quality,
+    meanWindSpeedMs: result.meanWindSpeedMs,
     hubHeightFactor: result.hubHeightFactor,
     measuredEnergyMwh: result.measuredEnergyMwh,
     grossAepMwh: result.grossAepMwh,
@@ -84,6 +85,45 @@ export async function latestYieldResult(mastId: string): Promise<StoredYieldResu
   const [row] = await getDb()
     .select()
     .from(yieldResults)
+    .where(eq(yieldResults.mastId, mastId))
+    .orderBy(desc(yieldResults.id))
+    .limit(1);
+  return row ?? null;
+}
+
+/** The newest result of a mast with the mast, turbine and site versions it was calculated with. */
+export type YieldResultDetails = {
+  result: StoredYieldResult;
+  mastName: string;
+  site: typeof siteVersions.$inferSelect;
+  turbine: typeof turbineVersions.$inferSelect;
+};
+
+/** The newest yield result of a mast with its master data, or null before the first calculation. */
+export async function latestYieldResultDetails(mastId: string): Promise<YieldResultDetails | null> {
+  const [row] = await getDb()
+    .select({
+      result: yieldResults,
+      mastName: masts.name,
+      site: siteVersions,
+      turbine: turbineVersions,
+    })
+    .from(yieldResults)
+    .innerJoin(masts, eq(masts.id, yieldResults.mastId))
+    .innerJoin(
+      siteVersions,
+      and(
+        eq(siteVersions.siteId, yieldResults.siteId),
+        eq(siteVersions.version, yieldResults.siteVersion),
+      ),
+    )
+    .innerJoin(
+      turbineVersions,
+      and(
+        eq(turbineVersions.turbineId, yieldResults.turbineId),
+        eq(turbineVersions.version, yieldResults.turbineVersion),
+      ),
+    )
     .where(eq(yieldResults.mastId, mastId))
     .orderBy(desc(yieldResults.id))
     .limit(1);

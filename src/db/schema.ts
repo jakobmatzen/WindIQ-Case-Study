@@ -173,6 +173,8 @@ export const yieldResults = pgTable(
     missingHours: integer("missing_hours").notNull(),
     coverageRatio: doublePrecision("coverage_ratio").notNull(),
     quality: yieldQuality("quality").notNull(),
+    /** Mean wind at measurement height over the valid hours, m/s; null for rows stored before. */
+    meanWindSpeedMs: doublePrecision("mean_wind_speed_ms"),
     hubHeightFactor: doublePrecision("hub_height_factor").notNull(),
     measuredEnergyMwh: doublePrecision("measured_energy_mwh").notNull(),
     grossAepMwh: doublePrecision("gross_aep_mwh").notNull(),

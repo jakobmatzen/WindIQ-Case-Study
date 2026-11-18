@@ -71,6 +71,9 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 18.11. | Korrekturen kommen über einen eigenen Stand (`updated_since`), der nach jeder Seite gespeichert wird und eine Stunde überlappt | Keine Korrektur geht verloren, auch wenn ein Lauf abbricht. Neue Stunden werden zuerst geholt, damit ein Problem bei den Korrekturen sie nicht aufhält. |
 | 18.11. | Vorübergehende API-Fehler (5xx, 429, Netzwerk, Timeout) werden bis zu 4-mal mit wachsender Wartezeit wiederholt, alle anderen nicht | Ausfälle und Rate-Limits sind nicht dokumentiert, ein 503 kam schon beim normalen Abruf. Ein dauerhafter Fehler wie falsche Zugangsdaten soll dagegen sofort sichtbar werden. |
 | 18.11. | Ein Messwert ohne gültige Stunde oder Version wird übersprungen und geloggt, nicht die ganze Seite abgelehnt | Sonst scheitert jeder Lauf an derselben Seite und der Abruf bleibt dauerhaft stehen |
+| 18.11. | Oberfläche erst als Prototypen (sechs Varianten auf der echten Seite), dann eine umgesetzt | Am echten Layout entscheidet es sich besser als in der Vorstellung. Gewählt: Navy-Leiste mit P90/P50 und ein Wasserfall von brutto bis P90, im Stil der WindIQ-App. |
+| 18.11. | Das Dashboard rechnet nicht selbst, es zeichnet die gespeicherte Rechnung Schritt für Schritt nach | Gutachtende sehen jeden Zwischenwert mit Version. Ein Test stellt sicher, dass Herleitung und gespeichertes Ergebnis dieselben Zahlen liefern. |
+| 18.11. | Grafiken als einfaches SVG vom Server statt einer Chart-Bibliothek | Kein JavaScript im Browser, scharf auf dem Handy. Eine Bibliothek lohnt sich erst für Zeitverläufe mit Tooltips. |
 
 ## 5. Befunde aus der API
 
@@ -115,6 +118,7 @@ Bis eine Antwort kommt, gilt jeweils die Arbeitsannahme.
 | Sollen frühere Ergebnisse gespeichert werden (P50/P90 im Zeitverlauf)? | ja, ein neues Ergebnis, sobald sich Messwerte, Anlage oder Standort ändern |
 | Der Messmast hat in der API keine Version. Kann sich die Messhöhe ändern? | ja, möglich. Jedes Ergebnis speichert die verwendete Messhöhe; ändert sie sich, wird neu gerechnet. |
 | Bleibt das Blättern mit `updated_since` stabil, wenn ein Wert währenddessen erneut korrigiert wird? | nein, ein Eintrag kann übersprungen werden. Eine Stunde Überlappung fängt das im Normalbetrieb ab (ein Lauf alle 15 Minuten holt eine Seite). |
+| Volllaststunden und Kapazitätsfaktor: auf Basis von AEP brutto oder netto? | netto (P50): AEP netto / Nennleistung, Kapazitätsfaktor = Volllaststunden / 8.760 h |
 | Gibt es Rate-Limits oder ein festes Timeout der API? | unbekannt. Jeder Request bricht nach 30 s ab, ein `Retry-After` wird beachtet (höchstens 1 Minute). |
 
 ## 8. Ausblick
