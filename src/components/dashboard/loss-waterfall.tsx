@@ -1,11 +1,12 @@
 import type { LossKey, YieldDerivation } from "@/core/derivation";
-import { formatInt, formatPercent } from "@/lib/format";
+import { formatDateTime, formatInt, formatPercent } from "@/lib/format";
 import { Card } from "./label";
 
 export type LossWaterfallProps = {
   grossAepMwh: number;
   derivation: YieldDerivation;
   uncertainty: number;
+  calculatedAt: Date;
   turbineVersion: number;
   siteVersion: number;
 };
@@ -104,7 +105,9 @@ export function LossWaterfall({ grossAepMwh, derivation: d, ...props }: LossWate
           </li>
         ))}
       </ol>
-      <p className="mt-5 text-xs text-muted-foreground sm:text-right">Alle Werte in MWh/a</p>
+      <p className="mt-5 text-xs text-muted-foreground sm:text-right">
+        Berechnet am {formatDateTime(props.calculatedAt)} · alle Werte in MWh/a
+      </p>
     </Card>
   );
 }

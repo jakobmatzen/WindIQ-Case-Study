@@ -156,6 +156,10 @@ describe("calculateYield", () => {
     expect(result.p50Mwh).toBe(0);
     expect(result.p90Mwh).toBe(0);
   });
+
+  test("has no mean wind, rather than 0 m/s, when no hour is valid", () => {
+    expect(yieldOf(hours(year, () => rejected)).meanWindSpeedMs).toBeNull();
+  });
 });
 
 describe("sameFingerprint", () => {

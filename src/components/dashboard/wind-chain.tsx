@@ -36,7 +36,7 @@ export function WindChain({ wind, ...props }: WindChainProps) {
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
         α aus Standort v{props.siteVersion}, Nabenhöhe aus Anlage v{props.turbineVersion}
-        {wind.mastMs === null && " · mittlerer Wind wird ab der nächsten Berechnung gespeichert"}
+        {wind.mastMs === null && " · mittlerer Wind für dieses Ergebnis nicht gespeichert"}
       </p>
     </Card>
   );

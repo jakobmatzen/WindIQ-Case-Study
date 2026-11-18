@@ -12,7 +12,7 @@ export type SiteRailProps = {
   p90Mwh: number;
   p50Mwh: number;
   quality: YieldQuality;
-  coverageRatio: number;
+  coverage: { ratio: number; validHours: number; rejectedHours: number; missingHours: number };
 };
 
 const QUALITY_WARNING: Record<YieldQuality, string | null> = {
@@ -50,10 +50,14 @@ export function SiteRail(props: SiteRailProps) {
         <div className="mb-2 flex items-baseline justify-between gap-3">
           <Label className="text-white/75">Datenabdeckung</Label>
           <span className="text-sm tabular-nums">
-            {formatPercent(props.coverageRatio)} · {QUALITY_LABEL[props.quality]}
+            {formatPercent(props.coverage.ratio)} · {QUALITY_LABEL[props.quality]}
           </span>
         </div>
-        <CoverageMeter ratio={props.coverageRatio} quality={props.quality} />
+        <CoverageMeter ratio={props.coverage.ratio} quality={props.quality} />
+        <p className="text-xs text-white/75 tabular-nums">
+          {formatInt(props.coverage.validHours)} gültig · {formatInt(props.coverage.rejectedHours)}{" "}
+          verworfen · {formatInt(props.coverage.missingHours)} fehlend
+        </p>
         {warning && (
           <p
             role="alert"

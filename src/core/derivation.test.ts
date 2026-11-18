@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { referenceSite, referenceTurbine } from "./__fixtures__/reference-turbine";
+import { rollingYear } from "./coverage";
 import { deriveYield, type DerivationInput } from "./derivation";
+import type { Mast } from "./mast";
+import { calculateYield } from "./yield";
 
 /** API docs example: 100 m mast, 140 m hub, α 0.2, losses 3/2/5 %, U 10 %, 3.6 MW. */
 const input: DerivationInput = {
@@ -57,5 +61,45 @@ describe("deriveYield", () => {
     expect(wind.mastMs).toBeNull();
     expect(wind.hubMs).toBeNull();
     expect(wind.factor).toBe(1.06961);
+  });
+
+  test("re-traces exactly the net AEP and P90 that calculateYield stored", () => {
+    const window = rollingYear(new Date("2026-11-17T23:00:00Z"));
+    const readings = Array.from({ length: window.hours }, (_, i) => ({
+      hour: new Date(window.start.getTime() + i * 3_600_000),
+      status: "valid" as const,
+      windSpeedMs: 3 + (i % 12),
+    }));
+    const mast: Mast = {
+      id: "WIQ-MM-01",
+      name: "Messmast Spreewald",
+      latitude: 51.9,
+      longitude: 14.1,
+      measurementHeightM: 100,
+      operator: "WindIQ",
+      commissionedAt: "2025-01-01",
+    };
+    const stored = calculateYield({
+      readings,
+      window,
+      mast,
+      turbine: referenceTurbine,
+      site: referenceSite,
+    });
+
+    const d = deriveYield({
+      meanWindSpeedMs: stored.meanWindSpeedMs,
+      measurementHeightM: stored.basis.measurementHeightM,
+      hubHeightM: referenceTurbine.hubHeightM,
+      shearExponent: referenceSite.shearExponent,
+      hubHeightFactor: stored.hubHeightFactor,
+      grossAepMwh: stored.grossAepMwh,
+      losses: referenceSite.losses,
+      uncertainty: referenceSite.uncertainty,
+      ratedPowerKw: referenceTurbine.ratedPowerKw,
+    });
+
+    expect(d.netAepMwh).toBeCloseTo(stored.netAepMwh, 6);
+    expect(d.p90Mwh).toBeCloseTo(stored.p90Mwh, 6);
   });
 });

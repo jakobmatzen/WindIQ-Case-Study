@@ -65,8 +65,8 @@ export type YieldResult = {
   basis: YieldBasis;
   coverage: Coverage;
   quality: YieldQuality;
-  /** Mean wind speed at measurement height over the valid hours, m/s (0 without valid hours). */
-  meanWindSpeedMs: number;
+  /** Mean wind speed at measurement height over the valid hours, m/s (null without valid hours). */
+  meanWindSpeedMs: number | null;
   /** Factor from wind at measurement height to wind at hub height. */
   hubHeightFactor: number;
   /** Energy of the valid hours as measured, before extrapolation and losses. */
@@ -111,7 +111,7 @@ export function calculateYield({ readings, window, mast, turbine, site }: YieldI
     },
     coverage,
     quality: qualityOf(coverage.ratio),
-    meanWindSpeedMs: coverage.validHours === 0 ? 0 : windSumMs / coverage.validHours,
+    meanWindSpeedMs: coverage.validHours === 0 ? null : windSumMs / coverage.validHours,
     hubHeightFactor,
     measuredEnergyMwh,
     grossAepMwh,

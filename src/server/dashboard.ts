@@ -4,7 +4,6 @@ import { deriveYield, type YieldDerivation } from "@/core/derivation";
 import type { YieldQuality } from "@/core/yield";
 import { lastSuccessfulSync, latestYieldResultDetails, listMasts } from "@/db";
 import { sourceOutage } from "@/lib/health";
-import { version as appVersion } from "../../package.json";
 import { maxSyncAgeMinutes } from "./health";
 
 export type DashboardDto = {
@@ -30,7 +29,7 @@ export type DashboardDto = {
     windowStart: Date;
     windowEnd: Date;
   };
-  turbine: { name: string; version: number; ratedPowerKw: number };
+  turbineVersion: number;
   siteVersion: number;
   derivation: YieldDerivation;
 };
@@ -47,7 +46,11 @@ export async function getDashboard(): Promise<DashboardDto | null> {
   if (!mast) return null;
   const [details, lastSync] = await Promise.all([
     latestYieldResultDetails(mast.id),
-    lastSuccessfulSync("measurements"),
+    // The outage notice is secondary: if it cannot be read, the result is still shown.
+    lastSuccessfulSync("measurements").catch((error: unknown) => {
+      console.error("[dashboard] last sync lookup failed", error);
+      return null;
+    }),
   ]);
   if (!details) return null;
   const { result, site, turbine } = details;
@@ -55,7 +58,7 @@ export async function getDashboard(): Promise<DashboardDto | null> {
   return {
     siteName: site.name,
     mastName: details.mastName,
-    appVersion,
+    appVersion: process.env.APP_VERSION ?? "dev",
     dataAsOf: result.windowEnd,
     calculatedAt: result.calculatedAt,
     outage: sourceOutage(lastSync, new Date(), maxSyncAgeMinutes()),
@@ -73,7 +76,7 @@ export async function getDashboard(): Promise<DashboardDto | null> {
       windowStart: result.windowStart,
       windowEnd: result.windowEnd,
     },
-    turbine: { name: turbine.name, version: turbine.version, ratedPowerKw: turbine.ratedPowerKw },
+    turbineVersion: turbine.version,
     siteVersion: site.version,
     derivation: deriveYield({
       meanWindSpeedMs: result.meanWindSpeedMs,

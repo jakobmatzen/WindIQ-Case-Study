@@ -33,7 +33,7 @@ async function Dashboard() {
         p90Mwh={data.p90Mwh}
         p50Mwh={data.p50Mwh}
         quality={data.quality}
-        coverageRatio={data.coverage.ratio}
+        coverage={data.coverage}
       />
       <main className="flex min-w-0 flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
         {data.outage && (
@@ -56,14 +56,15 @@ async function Dashboard() {
           validHours={data.coverage.validHours}
           windowStart={data.coverage.windowStart}
           windowEnd={data.coverage.windowEnd}
-          turbineVersion={data.turbine.version}
+          turbineVersion={data.turbineVersion}
           siteVersion={data.siteVersion}
         />
         <LossWaterfall
           grossAepMwh={data.grossAepMwh}
           derivation={d}
           uncertainty={data.uncertainty}
-          turbineVersion={data.turbine.version}
+          calculatedAt={data.calculatedAt}
+          turbineVersion={data.turbineVersion}
           siteVersion={data.siteVersion}
         />
       </main>
