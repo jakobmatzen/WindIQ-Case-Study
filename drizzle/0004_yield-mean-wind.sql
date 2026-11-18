@@ -1,0 +1,1 @@
+ALTER TABLE "yield_results" ADD COLUMN "mean_wind_speed_ms" double precision;

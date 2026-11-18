@@ -7,9 +7,18 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-onest);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-space-grotesk);
+  --color-success: var(--success);
+  --color-success-text: color-mix(in srgb, var(--success) 72%, var(--foreground));
+  --color-warning: var(--warning);
+  --color-warning-text: color-mix(in srgb, var(--warning) 55%, var(--foreground));
+  --color-cta: var(--cta);
+  --color-navy: var(--navy);
+  --color-success-on-navy: var(--success-on-navy);
+  --color-warning-on-navy: var(--warning-on-navy);
+  --color-danger-on-navy: var(--danger-on-navy);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,38 +58,47 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* WindIQ light theme (windiq.de): navy ink, blue primary, gold CTA, cool grey canvas. */
+  --background: #edf0f6;
+  --foreground: #12243e;
+  --card: #ffffff;
+  --card-foreground: #12243e;
+  --popover: #ffffff;
+  --popover-foreground: #12243e;
+  --primary: #356dbf;
+  --primary-foreground: #f1f7ff;
+  --secondary: #edf0f6;
+  --secondary-foreground: #12243e;
+  --muted: #edf0f6;
+  --muted-foreground: #4a5970;
+  --accent: #edf0f6;
+  --accent-foreground: #12243e;
+  --destructive: #dc2626;
+  --success: #16a34a;
+  --warning: #fb923c;
+  --cta: #d8ad59;
+  --navy: #12243e;
+  /* Status colors that stay readable on the navy rail (WindIQ's dark-theme steps). */
+  --success-on-navy: #4ade80;
+  --warning-on-navy: #fdba74;
+  --danger-on-navy: #f87171;
+  --border: #dde2ea;
+  --input: #dde2ea;
+  --ring: #356dbf;
+  --chart-1: #1e4072;
+  --chart-2: #356dbf;
+  --chart-3: #ae7d28;
+  --chart-4: #8692a2;
+  --chart-5: #4a5970;
+  --radius: 0.5rem;
+  --sidebar: #051022;
+  --sidebar-foreground: #c7ced8;
+  --sidebar-primary: #9cc4f8;
+  --sidebar-primary-foreground: #051022;
+  --sidebar-accent: #12243e;
+  --sidebar-accent-foreground: #f6f9fc;
+  --sidebar-border: #12243e;
+  --sidebar-ring: #72a7ed;
 }
 
 .dark {

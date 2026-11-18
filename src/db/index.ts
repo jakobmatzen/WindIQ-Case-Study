@@ -17,7 +17,9 @@ export { failSyncRun, finishSyncRun, lastSuccessfulSync, startSyncRun } from "./
 export {
   insertYieldResult,
   latestYieldResult,
+  latestYieldResultDetails,
   saveSiteVersion,
   saveTurbineVersion,
   type StoredYieldResult,
+  type YieldResultDetails,
 } from "./yields";
