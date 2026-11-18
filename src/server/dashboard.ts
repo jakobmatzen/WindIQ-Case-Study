@@ -1,17 +1,21 @@
 import "server-only";
 import { connection } from "next/server";
 import { deriveYield, type YieldDerivation } from "@/core/derivation";
-import type { MonthYield, RejectionReason, YieldQuality } from "@/core/yield";
+import {
+  REJECTION_REASONS,
+  type MonthYield,
+  type RejectionReason,
+  type YieldQuality,
+} from "@/core/yield";
 import {
   lastSuccessfulSync,
   latestYieldResultDetails,
   listMasts,
   recentSyncRuns,
   yieldHistory,
-  type SyncRun,
   type YieldHistoryPoint,
 } from "@/db";
-import { sourceOutage } from "@/lib/health";
+import { runDisplayStatus, sourceOutage, type RunDisplayStatus } from "@/lib/health";
 import { maxSyncAgeMinutes } from "./health";
 
 export type DashboardDto = {
@@ -47,9 +51,22 @@ export type DashboardDto = {
   /** P50/P90 of every stored result, oldest first; empty if it cannot be read. */
   history: YieldHistoryPoint[];
   /** The latest worker runs, newest first; null if they cannot be read. */
-  runs: SyncRun[] | null;
+  runs: SyncRunDto[] | null;
   statusPageUrl: string;
 };
+
+/** A worker run as the public page shows it: no raw error text, which may name internal hosts. */
+export type SyncRunDto = {
+  id: number;
+  job: "measurements" | "yield";
+  status: RunDisplayStatus;
+  startedAt: Date;
+  itemsProcessed: number;
+  corrections: number;
+};
+
+/** About ten days of hourly results. */
+const HISTORY_LIMIT = 240;
 
 /** Public uptime page that watches `/api/health` from outside. */
 const STATUS_PAGE_URL = "https://stats.uptimerobot.com/tT5SSEWYNn";
@@ -78,11 +95,12 @@ export async function getDashboard(): Promise<DashboardDto | null> {
     latestYieldResultDetails(mast.id),
     // Outage notice, trend and runs are secondary: if one cannot be read, the result is still shown.
     lastSuccessfulSync("measurements").catch(secondary("last sync lookup", null)),
-    yieldHistory(mast.id).catch(secondary("yield history", [])),
+    yieldHistory(mast.id, HISTORY_LIMIT).catch(secondary("yield history", [])),
     recentSyncRuns(RECENT_RUNS).catch(secondary("recent sync runs", null)),
   ]);
   if (!details) return null;
   const { result, site, turbine } = details;
+  const now = new Date();
 
   return {
     siteName: site.name,
@@ -90,7 +108,7 @@ export async function getDashboard(): Promise<DashboardDto | null> {
     appVersion: process.env.APP_VERSION ?? "dev",
     dataAsOf: result.windowEnd,
     calculatedAt: result.calculatedAt,
-    outage: sourceOutage(lastSync, new Date(), maxSyncAgeMinutes()),
+    outage: sourceOutage(lastSync, now, maxSyncAgeMinutes()),
     quality: result.quality,
     p50Mwh: result.p50Mwh,
     p90Mwh: result.p90Mwh,
@@ -123,9 +141,22 @@ export async function getDashboard(): Promise<DashboardDto | null> {
       ratedPowerKw: turbine.ratedPowerKw,
     }),
     months: result.months?.map((m) => ({ ...m, month: new Date(m.month) })) ?? null,
-    rejections: result.rejections,
+    // Stored JSON: a reason added later is missing in older rows and counts as 0.
+    rejections: result.rejections
+      ? (Object.fromEntries(
+          REJECTION_REASONS.map((r) => [r, result.rejections?.[r] ?? 0]),
+        ) as Record<RejectionReason, number>)
+      : null,
     history,
-    runs,
+    runs:
+      runs?.map((r) => ({
+        id: r.id,
+        job: r.job,
+        status: runDisplayStatus(r, now, maxSyncAgeMinutes()),
+        startedAt: r.startedAt,
+        itemsProcessed: r.itemsProcessed,
+        corrections: r.corrections,
+      })) ?? null,
     statusPageUrl: STATUS_PAGE_URL,
   };
 }

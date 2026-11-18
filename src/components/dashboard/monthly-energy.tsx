@@ -1,4 +1,4 @@
-import { COVERAGE_THRESHOLDS, type MonthYield } from "@/core/yield";
+import { COVERAGE_THRESHOLDS, isPartialMonth, type MonthYield } from "@/core/yield";
 import {
   formatInt,
   formatMonth,
@@ -9,10 +9,6 @@ import {
 import { cn } from "@/lib/utils";
 import { ChartTip } from "./chart-tip";
 import { Card } from "./label";
-
-function daysIn(month: Date): number {
-  return new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0)).getUTCDate();
-}
 
 const coverageOf = (m: MonthYield) => (m.hours === 0 ? 0 : m.validHours / m.hours);
 
@@ -56,7 +52,7 @@ function Bars({ months }: { months: MonthYield[] }) {
         style={{ gridTemplateColumns: `repeat(${months.length}, minmax(0, 1fr))` }}
       >
         {months.map((m) => {
-          const partial = m.hours < daysIn(m.month) * 24;
+          const partial = isPartialMonth(m);
           const coverage = coverageOf(m);
           return (
             <li key={m.month.toISOString()}>

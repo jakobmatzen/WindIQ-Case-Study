@@ -10,6 +10,7 @@
  */
 import {
   calculateCoverage,
+  HOUR_MS,
   HOURS_PER_YEAR,
   isInWindow,
   type Coverage,
@@ -105,10 +106,14 @@ export type YieldResult = {
   rejections: Record<RejectionReason, number>;
 };
 
-const HOUR_MS = 3_600_000;
-
 function monthStart(hour: Date): Date {
   return new Date(Date.UTC(hour.getUTCFullYear(), hour.getUTCMonth(), 1));
+}
+
+/** Whether only part of the calendar month lies inside the window (the first and last month). */
+export function isPartialMonth(m: Pick<MonthYield, "month" | "hours">): boolean {
+  const next = Date.UTC(m.month.getUTCFullYear(), m.month.getUTCMonth() + 1, 1);
+  return m.hours < (next - m.month.getTime()) / HOUR_MS;
 }
 
 /** The calendar months the window touches, with how many of their hours lie inside it. */

@@ -5,7 +5,7 @@
  */
 import type { MeasurementStatus } from "./measurement";
 
-const HOUR_MS = 3_600_000;
+export const HOUR_MS = 3_600_000;
 
 /** Hours in the year an AEP refers to (leap years ignored on purpose). */
 export const HOURS_PER_YEAR = 8760;

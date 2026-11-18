@@ -6,15 +6,14 @@ import { Card, Label } from "./label";
 export type SyncRunRow = {
   id: number;
   job: "measurements" | "yield";
-  status: "running" | "success" | "error";
+  status: "running" | "success" | "error" | "aborted";
   startedAt: Date;
   itemsProcessed: number;
   corrections: number;
-  error: string | null;
 };
 
 const JOB = { measurements: "Messwerte", yield: "Ertrag" };
-const STATUS = { success: "OK", error: "Fehler", running: "läuft" };
+const STATUS = { success: "OK", error: "Fehler", running: "läuft", aborted: "abgebrochen" };
 
 /** The latest worker runs and the link to the external status page. */
 export function SyncRuns({
@@ -76,8 +75,10 @@ export function SyncRuns({
                 </td>
                 <td className="py-1.5">{JOB[r.job]}</td>
                 <td
-                  className={cn("py-1.5", r.status === "error" && "text-destructive")}
-                  title={r.error ?? undefined}
+                  className={cn(
+                    "py-1.5",
+                    (r.status === "error" || r.status === "aborted") && "text-destructive",
+                  )}
                 >
                   {STATUS[r.status]}
                 </td>

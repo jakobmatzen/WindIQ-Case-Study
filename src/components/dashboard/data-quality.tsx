@@ -56,7 +56,7 @@ export function DataQuality({ rejections, missingHours }: DataQualityProps) {
       </ul>
       {!rejections && (
         <p className="mt-4 text-xs text-muted-foreground">
-          Ablehngründe erscheinen mit dem nächsten berechneten Ergebnis.
+          Ablehnungsgründe erscheinen mit dem nächsten berechneten Ergebnis.
         </p>
       )}
     </Card>

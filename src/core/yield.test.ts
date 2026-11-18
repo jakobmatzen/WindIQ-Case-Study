@@ -3,7 +3,7 @@ import { referenceSite, referenceTurbine } from "./__fixtures__/reference-turbin
 import { rollingYear, type HourWindow } from "./coverage";
 import type { Mast } from "./mast";
 import type { MeasurementStatus } from "./measurement";
-import { calculateYield, sameFingerprint, type YieldFingerprint } from "./yield";
+import { calculateYield, isPartialMonth, sameFingerprint, type YieldFingerprint } from "./yield";
 
 const HOUR_MS = 3_600_000;
 
@@ -174,6 +174,7 @@ describe("calculateYield per month", () => {
     expect(months[3]?.hours).toBe(28 * 24);
     expect(months[12]?.month).toEqual(new Date("2026-11-01T00:00:00Z"));
     expect(months[12]?.hours).toBe(17 * 24);
+    expect(months.map(isPartialMonth)).toEqual([true, ...Array(11).fill(false), true]);
   });
 
   test("adds up to gross AEP, even with gaps of different size per month", () => {

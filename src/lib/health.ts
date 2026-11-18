@@ -28,3 +28,19 @@ export function sourceOutage(
   const duration = ageMinutes < 60 ? `${ageMinutes} min` : `${Math.floor(ageMinutes / 60)} h`;
   return { duration };
 }
+
+export type RunDisplayStatus = "running" | "success" | "error" | "aborted";
+
+/**
+ * How a worker run is shown. A run that is still open after the limit was cut off (the worker
+ * stopped mid-run, e.g. on a deploy) and never finished, so it is shown as aborted, not running.
+ */
+export function runDisplayStatus(
+  run: { status: "running" | "success" | "error"; startedAt: Date },
+  now: Date,
+  maxAgeMinutes = DEFAULT_MAX_SYNC_AGE_MINUTES,
+): RunDisplayStatus {
+  if (run.status !== "running") return run.status;
+  const ageMinutes = (now.getTime() - run.startedAt.getTime()) / 60_000;
+  return ageMinutes > maxAgeMinutes ? "aborted" : "running";
+}

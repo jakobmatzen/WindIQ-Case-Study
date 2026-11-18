@@ -11,6 +11,8 @@ export type ChartTipProps = {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
+  /** False for marks that are too many to tab through; the chart then needs a text alternative. */
+  focusable?: boolean;
 };
 
 /**
@@ -18,7 +20,14 @@ export type ChartTipProps = {
  * where a plain tooltip never opens. Children can style themselves on `group-data-[popup-open]`
  * and `group-hover` for the hover state.
  */
-export function ChartTip({ label, content, children, className, style }: ChartTipProps) {
+export function ChartTip({
+  label,
+  content,
+  children,
+  className,
+  style,
+  focusable = true,
+}: ChartTipProps) {
   return (
     <Popover.Root>
       <Popover.Trigger
@@ -26,6 +35,7 @@ export function ChartTip({ label, content, children, className, style }: ChartTi
         delay={0}
         closeDelay={0}
         aria-label={label}
+        tabIndex={focusable ? undefined : -1}
         className={cn(
           "group cursor-default rounded-sm outline-none [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-ring",
           className,

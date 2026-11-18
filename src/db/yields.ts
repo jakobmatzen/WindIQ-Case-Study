@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { Site } from "@/core/site";
 import type { Turbine } from "@/core/turbine";
 import type { YieldResult } from "@/core/yield";
@@ -140,9 +140,12 @@ export type YieldHistoryPoint = Pick<
   "id" | "calculatedAt" | "windowEnd" | "p50Mwh" | "p90Mwh" | "turbineVersion" | "siteVersion"
 >;
 
-/** Every stored result of a mast, oldest first. One row per real change, so the list stays short. */
-export async function yieldHistory(mastId: string): Promise<YieldHistoryPoint[]> {
-  return getDb()
+/**
+ * The newest `limit` stored results of a mast, oldest first. A new hour of readings already makes a
+ * new result, so there are about 24 a day: the limit keeps query and chart small.
+ */
+export async function yieldHistory(mastId: string, limit: number): Promise<YieldHistoryPoint[]> {
+  const rows = await getDb()
     .select({
       id: yieldResults.id,
       calculatedAt: yieldResults.calculatedAt,
@@ -154,5 +157,7 @@ export async function yieldHistory(mastId: string): Promise<YieldHistoryPoint[]>
     })
     .from(yieldResults)
     .where(eq(yieldResults.mastId, mastId))
-    .orderBy(asc(yieldResults.id));
+    .orderBy(desc(yieldResults.id))
+    .limit(limit);
+  return rows.reverse();
 }

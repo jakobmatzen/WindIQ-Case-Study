@@ -58,15 +58,22 @@ function Chart({ history }: { history: YieldTrendPoint[] }) {
     history
       .map((h, i) => (i === 0 ? `M ${xs[i]} ${y(h[key])}` : `H ${xs[i]} V ${y(h[key])}`))
       .join(" ") + " H 100";
+  const first = history[0]!;
   const last = history.at(-1)!;
 
   return (
     <div className="grid grid-cols-[3.25rem_1fr_4.75rem] gap-x-2">
+      <p className="sr-only">
+        {history.length === 1
+          ? `Ergebnis vom ${formatDayTime(last.calculatedAt)}: P50 ${formatInt(last.p50Mwh)}, P90 ${formatInt(last.p90Mwh)} MWh/a.`
+          : `Vom ${formatDayTime(first.calculatedAt)} bis ${formatDayTime(last.calculatedAt)}: P50 von ${formatInt(first.p50Mwh)} auf ${formatInt(last.p50Mwh)}, P90 von ${formatInt(first.p90Mwh)} auf ${formatInt(last.p90Mwh)} MWh/a, zwischen ${formatInt(lo)} und ${formatInt(hi)}.`}
+      </p>
       <div className="flex flex-col justify-between py-0.5 text-right font-mono text-[11px] text-muted-foreground tabular-nums">
         <span>{formatInt(max)}</span>
         <span>{formatInt(min)}</span>
       </div>
-      <div className="relative h-44 border-b border-l border-border">
+      {/* Points: pointer and touch only; screen readers and keyboards get the summary below. */}
+      <div className="relative h-44 border-b border-l border-border" aria-hidden>
         <svg
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
@@ -94,6 +101,7 @@ function Chart({ history }: { history: YieldTrendPoint[] }) {
               key={h.id}
               label={`Ergebnis vom ${formatDayTime(h.calculatedAt)}: P50 ${formatInt(h.p50Mwh)}, P90 ${formatInt(h.p90Mwh)} MWh/a`}
               className="absolute inset-y-0"
+              focusable={false}
               style={{ left: `${left}%`, width: `${width}%` }}
               content={<PointTip point={h} />}
             >
@@ -128,7 +136,7 @@ function Chart({ history }: { history: YieldTrendPoint[] }) {
       </div>
       <span />
       <div className="mt-1 flex justify-between gap-2 font-mono text-[10px] text-muted-foreground tabular-nums sm:text-[11px]">
-        <span>{axisTime(history[0]!.calculatedAt)}</span>
+        <span>{axisTime(first.calculatedAt)}</span>
         {history.length > 1 && <span className="text-right">{axisTime(last.calculatedAt)}</span>}
       </div>
     </div>
