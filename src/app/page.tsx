@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { COVERAGE_THRESHOLDS, type YieldQuality } from "@/core/yield";
+import { getSourceOutage } from "@/server/health";
 import { getLatestYield } from "@/server/yield";
 
 // Interim page until the dashboard (JAK-15): the latest yield result, without design.
@@ -80,10 +81,28 @@ async function LatestYield() {
   );
 }
 
+/** Shown while the worker cannot reach the data source; the last result stays visible below. */
+async function OutageBanner() {
+  const outage = await getSourceOutage();
+  if (!outage) return null;
+  return (
+    <p
+      role="alert"
+      className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive"
+    >
+      Datenquelle seit {outage.duration} nicht erreichbar – angezeigt wird das zuletzt berechnete
+      Ergebnis.
+    </p>
+  );
+}
+
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-16">
       <h1 className="text-2xl font-semibold tracking-tight">WindIQ Ertragsrechnung</h1>
+      <Suspense>
+        <OutageBanner />
+      </Suspense>
       <Suspense fallback={<p className="text-muted-foreground">Lade Ergebnis …</p>}>
         <LatestYield />
       </Suspense>

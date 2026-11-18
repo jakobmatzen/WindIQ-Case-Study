@@ -41,7 +41,7 @@ const HEARTBEAT_FILE = process.env.WORKER_HEARTBEAT_FILE ?? "/tmp/worker-heartbe
 
 let stopping = false;
 
-function log(level: "info" | "error", msg: string, extra: Record<string, unknown> = {}) {
+function log(level: "info" | "warn" | "error", msg: string, extra: Record<string, unknown> = {}) {
   // One JSON object per line: easy to grep and to ship to a log service later.
   console[level](JSON.stringify({ ts: new Date().toISOString(), level, msg, ...extra }));
 }
@@ -90,6 +90,8 @@ function windiqSource(): MeasurementSource & SiteDataSource {
     baseUrl: requireEnv("WINDIQ_API_BASE_URL"),
     clientId: requireEnv("WINDIQ_CLIENT_ID"),
     clientSecret: requireEnv("WINDIQ_CLIENT_SECRET"),
+    onRetry: (retry) => log("warn", "request retried", { ...retry }),
+    onSkippedReading: (problem) => log("warn", "reading skipped", { problem }),
   });
 }
 

@@ -69,6 +69,8 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 18.11. | Antworten der API werden Feld für Feld geprüft, bevor gerechnet wird | Ein kaputter Wert (z. B. Verlust in Prozent statt als Anteil) bricht den Lauf mit klarer Meldung ab, statt ein falsches Ergebnis anzuzeigen |
 | 18.11. | Datenbank-Migrationen erzeugt Claude selbst, angewendet werden sie nur auf meine Freigabe | Eine Migration verändert eine echte Datenbank und lässt sich schwer zurücknehmen. Im Deploy laufen sie automatisch nach meinem Merge. |
 | 18.11. | Korrekturen kommen über einen eigenen Stand (`updated_since`), der nach jeder Seite gespeichert wird und eine Stunde überlappt | Keine Korrektur geht verloren, auch wenn ein Lauf abbricht. Neue Stunden werden zuerst geholt, damit ein Problem bei den Korrekturen sie nicht aufhält. |
+| 18.11. | Vorübergehende API-Fehler (5xx, 429, Netzwerk, Timeout) werden bis zu 4-mal mit wachsender Wartezeit wiederholt, alle anderen nicht | Ausfälle und Rate-Limits sind nicht dokumentiert, ein 503 kam schon beim normalen Abruf. Ein dauerhafter Fehler wie falsche Zugangsdaten soll dagegen sofort sichtbar werden. |
+| 18.11. | Ein Messwert ohne gültige Stunde oder Version wird übersprungen und geloggt, nicht die ganze Seite abgelehnt | Sonst scheitert jeder Lauf an derselben Seite und der Abruf bleibt dauerhaft stehen |
 
 ## 5. Befunde aus der API
 
@@ -94,7 +96,8 @@ Ein vollständiger Abruf (17.11., 8.707 Stundenwerte über ein Jahr) zeigt, womi
 - **Externe Überwachung:** UptimeRobot ruft `/api/health` für `dev` und `prod` regelmäßig auf und schlägt bei Ausfall per E-Mail Alarm. Die [Statusseite](https://stats.uptimerobot.com/tT5SSEWYNn) ist öffentlich.
 - **Worker:** protokolliert jeden Lauf in der Datenbank (`sync_runs`) und schreibt alle 30 Sekunden ein Lebenszeichen, das Docker überwacht.
 - **Deploy:** nach jedem Deploy prüft ein Smoke-Test `/api/health`.
-- **Logs:** strukturiert (JSON) und rotiert.
+- **Ausfall-Hinweis:** Ist der letzte erfolgreiche Abruf älter als 2 Stunden, zeigt die Seite einen Hinweis. Das zuletzt berechnete Ergebnis bleibt sichtbar.
+- **Logs:** strukturiert (JSON) und rotiert. Jede Wiederholung eines Requests und jeder übersprungene Messwert steht als Warnung im Log.
 
 ## 7. Offene Fragen an WindIQ
 
@@ -112,6 +115,7 @@ Bis eine Antwort kommt, gilt jeweils die Arbeitsannahme.
 | Sollen frühere Ergebnisse gespeichert werden (P50/P90 im Zeitverlauf)? | ja, ein neues Ergebnis, sobald sich Messwerte, Anlage oder Standort ändern |
 | Der Messmast hat in der API keine Version. Kann sich die Messhöhe ändern? | ja, möglich. Jedes Ergebnis speichert die verwendete Messhöhe; ändert sie sich, wird neu gerechnet. |
 | Bleibt das Blättern mit `updated_since` stabil, wenn ein Wert währenddessen erneut korrigiert wird? | nein, ein Eintrag kann übersprungen werden. Eine Stunde Überlappung fängt das im Normalbetrieb ab (ein Lauf alle 15 Minuten holt eine Seite). |
+| Gibt es Rate-Limits oder ein festes Timeout der API? | unbekannt. Jeder Request bricht nach 30 s ab, ein `Retry-After` wird beachtet (höchstens 1 Minute). |
 
 ## 8. Ausblick
 
