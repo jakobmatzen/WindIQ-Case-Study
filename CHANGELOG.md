@@ -2,6 +2,13 @@
 
 All versions of the WindIQ case study. Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0-beta.9 – 2026-11-18
+
+- Dashboard shows the trend of P50 and P90, energy per month with each month's data coverage, rejected readings per reason and the latest worker runs with a link to the status page
+- Each result stores its months and rejections (migration 0005); months are scaled up to their full hours and add up to gross AEP (test-first in core)
+- Chart tooltips open instantly on hover and on tap
+- The public page shows no raw error text; a run left open past the sync limit shows as aborted
+
 ## v1.0.0-beta.8 – 2026-11-18
 
 - Dashboard in WindIQ's style: navy rail with site, data status, app version, P90 (bank) and P50 (project developers), data coverage with the 70 % / 90 % thresholds
