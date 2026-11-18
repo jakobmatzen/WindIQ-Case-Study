@@ -68,6 +68,7 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 18.11. | Ein neues Ergebnis nur, wenn sich Messwerte, Zeitraum, Anlage oder Standort ändern | Die Ergebnis-Historie zeigt echte Änderungen statt vier gleicher Einträge pro Stunde |
 | 18.11. | Antworten der API werden Feld für Feld geprüft, bevor gerechnet wird | Ein kaputter Wert (z. B. Verlust in Prozent statt als Anteil) bricht den Lauf mit klarer Meldung ab, statt ein falsches Ergebnis anzuzeigen |
 | 18.11. | Datenbank-Migrationen erzeugt Claude selbst, angewendet werden sie nur auf meine Freigabe | Eine Migration verändert eine echte Datenbank und lässt sich schwer zurücknehmen. Im Deploy laufen sie automatisch nach meinem Merge. |
+| 18.11. | Korrekturen kommen über einen eigenen Stand (`updated_since`), der nach jeder Seite gespeichert wird und eine Stunde überlappt | Keine Korrektur geht verloren, auch wenn ein Lauf abbricht. Neue Stunden werden zuerst geholt, damit ein Problem bei den Korrekturen sie nicht aufhält. |
 
 ## 5. Befunde aus der API
 
@@ -110,6 +111,7 @@ Bis eine Antwort kommt, gilt jeweils die Arbeitsannahme.
 | Kennlinie zwischen den Stützpunkten interpolieren? | ja, linear. Unter Cut-in und über Cut-out ist die Leistung 0. |
 | Sollen frühere Ergebnisse gespeichert werden (P50/P90 im Zeitverlauf)? | ja, ein neues Ergebnis, sobald sich Messwerte, Anlage oder Standort ändern |
 | Der Messmast hat in der API keine Version. Kann sich die Messhöhe ändern? | ja, möglich. Jedes Ergebnis speichert die verwendete Messhöhe; ändert sie sich, wird neu gerechnet. |
+| Bleibt das Blättern mit `updated_since` stabil, wenn ein Wert währenddessen erneut korrigiert wird? | nein, ein Eintrag kann übersprungen werden. Eine Stunde Überlappung fängt das im Normalbetrieb ab (ein Lauf alle 15 Minuten holt eine Seite). |
 
 ## 8. Ausblick
 

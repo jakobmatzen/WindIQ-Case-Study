@@ -2,6 +2,14 @@
 
 All versions of the WindIQ case study. Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0-beta.6 – 2026-11-18
+
+- Worker fetches corrections via `updated_since` from its own per-mast cursor, saved after every page
+- A reading replaces the stored one only with a higher version (test-first in core)
+- `sync_runs` counts corrections per run, also for failed runs
+- New hours are fetched before corrections, so a correction problem cannot hold them back
+- Recalculation check moved into core and tested: corrections and new turbine or site versions create a new result
+
 ## v1.0.0-beta.5 – 2026-11-18
 
 - Yield calculated test-first: height correction, power curve, gross and net AEP, P50, P90, extrapolated to a full year, with coverage warnings below 90 % and 70 %
