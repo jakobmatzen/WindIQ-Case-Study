@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { evaluateSyncFreshness } from "./health";
+import { evaluateSyncFreshness, sourceOutage } from "./health";
 
 const now = new Date("2026-11-20T12:00:00Z");
 
@@ -21,5 +21,20 @@ describe("evaluateSyncFreshness", () => {
   test("older than the limit is stale", () => {
     const last = new Date("2026-11-20T09:59:00Z");
     expect(evaluateSyncFreshness(last, now, 120)).toEqual({ status: "stale", ageMinutes: 121 });
+  });
+});
+
+describe("sourceOutage", () => {
+  test("no outage while the last sync is at most 2 hours old", () => {
+    expect(sourceOutage(new Date("2026-11-20T10:00:00Z"), now)).toBeNull();
+  });
+
+  test("an outage once the last sync is older than 2 hours, in whole hours", () => {
+    expect(sourceOutage(new Date("2026-11-20T09:59:00Z"), now)).toEqual({ hours: 2 });
+    expect(sourceOutage(new Date("2026-11-19T12:00:00Z"), now)).toEqual({ hours: 24 });
+  });
+
+  test("no outage before the first sync: then there is no result to keep showing", () => {
+    expect(sourceOutage(null, now)).toBeNull();
   });
 });

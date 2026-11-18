@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { evaluateSyncFreshness } from "@/lib/health";
-import { getLastSuccessfulRuns } from "@/server/health";
+import { getLastSuccessfulRuns, maxSyncAgeMinutes } from "@/server/health";
 
 /**
  * Readiness: is the system actually doing its job?
@@ -10,7 +10,7 @@ import { getLastSuccessfulRuns } from "@/server/health";
  */
 export async function GET() {
   await connection();
-  const maxAge = Number(process.env.HEALTH_MAX_SYNC_AGE_MINUTES) || undefined;
+  const maxAge = maxSyncAgeMinutes();
 
   try {
     const lastRuns = await getLastSuccessfulRuns();

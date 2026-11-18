@@ -10,6 +10,8 @@ export class ResponseShapeError extends Error {
   }
 }
 
+const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+
 /** Reads typed fields from an untrusted object, or throws a `ResponseShapeError`. */
 export class ShapeReader {
   private constructor(
@@ -34,9 +36,32 @@ export class ShapeReader {
     return typeof v === "string" && v.length > 0 ? v : this.fail(key, "a non-empty string");
   }
 
+  /** Text or null; an empty string is not accepted. */
+  nullableString(key: string): string | null {
+    const v = this.value[key];
+    if (v === null) return null;
+    return typeof v === "string" && v.length > 0 ? v : this.fail(key, "a non-empty string or null");
+  }
+
+  /**
+   * An ISO 8601 date and time with a time zone (`Z` or `±hh:mm`), returned as sent.
+   * Without a zone the UTC hour would depend on the server's time zone.
+   */
+  dateTime(key: string): string {
+    const v = this.value[key];
+    return typeof v === "string" && ISO_DATE_TIME.test(v) && !Number.isNaN(Date.parse(v))
+      ? v
+      : this.fail(key, "a date and time");
+  }
+
   number(key: string): number {
     const v = this.value[key];
     return typeof v === "number" && Number.isFinite(v) ? v : this.fail(key, "a number");
+  }
+
+  /** The raw value, unchecked: for fields whose content `core` judges. */
+  raw(key: string): unknown {
+    return this.value[key];
   }
 
   integer(key: string): number {
@@ -69,6 +94,12 @@ export class ShapeReader {
   nonEmptyList(key: string): ShapeReader[] {
     const v = this.value[key];
     if (!Array.isArray(v) || v.length === 0) this.fail(key, "a non-empty list");
+    return this.list(key);
+  }
+
+  list(key: string): ShapeReader[] {
+    const v = this.value[key];
+    if (!Array.isArray(v)) this.fail(key, "a list");
     return v.map((item, i) => {
       if (typeof item !== "object" || item === null) this.fail(`${key}[${i}]`, "an object");
       return ShapeReader.of(this.endpoint, item, `${this.prefix}${key}[${i}].`);
