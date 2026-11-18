@@ -1,8 +1,16 @@
 import "server-only";
 import { connection } from "next/server";
 import { deriveYield, type YieldDerivation } from "@/core/derivation";
-import type { YieldQuality } from "@/core/yield";
-import { lastSuccessfulSync, latestYieldResultDetails, listMasts } from "@/db";
+import type { MonthYield, RejectionReason, YieldQuality } from "@/core/yield";
+import {
+  lastSuccessfulSync,
+  latestYieldResultDetails,
+  listMasts,
+  recentSyncRuns,
+  yieldHistory,
+  type SyncRun,
+  type YieldHistoryPoint,
+} from "@/db";
 import { sourceOutage } from "@/lib/health";
 import { maxSyncAgeMinutes } from "./health";
 
@@ -32,7 +40,29 @@ export type DashboardDto = {
   turbineVersion: number;
   siteVersion: number;
   derivation: YieldDerivation;
+  /** Energy and coverage per calendar month; null for a result stored before months were. */
+  months: MonthYield[] | null;
+  /** Rejected readings per reason; null for a result stored before they were counted. */
+  rejections: Record<RejectionReason, number> | null;
+  /** P50/P90 of every stored result, oldest first; empty if it cannot be read. */
+  history: YieldHistoryPoint[];
+  /** The latest worker runs, newest first; null if they cannot be read. */
+  runs: SyncRun[] | null;
+  statusPageUrl: string;
 };
+
+/** Public uptime page that watches `/api/health` from outside. */
+const STATUS_PAGE_URL = "https://stats.uptimerobot.com/tT5SSEWYNn";
+
+const RECENT_RUNS = 12;
+
+/** Logs and swallows a failed secondary read: the result itself is still shown. */
+function secondary<T>(what: string, fallback: T) {
+  return (error: unknown): T => {
+    console.error(`[dashboard] ${what} failed`, error);
+    return fallback;
+  };
+}
 
 /**
  * Everything the dashboard shows, or null before the first calculation.
@@ -44,13 +74,12 @@ export async function getDashboard(): Promise<DashboardDto | null> {
   await connection(); // request time only: the build never touches the database
   const [mast] = await listMasts();
   if (!mast) return null;
-  const [details, lastSync] = await Promise.all([
+  const [details, lastSync, history, runs] = await Promise.all([
     latestYieldResultDetails(mast.id),
-    // The outage notice is secondary: if it cannot be read, the result is still shown.
-    lastSuccessfulSync("measurements").catch((error: unknown) => {
-      console.error("[dashboard] last sync lookup failed", error);
-      return null;
-    }),
+    // Outage notice, trend and runs are secondary: if one cannot be read, the result is still shown.
+    lastSuccessfulSync("measurements").catch(secondary("last sync lookup", null)),
+    yieldHistory(mast.id).catch(secondary("yield history", [])),
+    recentSyncRuns(RECENT_RUNS).catch(secondary("recent sync runs", null)),
   ]);
   if (!details) return null;
   const { result, site, turbine } = details;
@@ -93,5 +122,10 @@ export async function getDashboard(): Promise<DashboardDto | null> {
       uncertainty: site.uncertainty,
       ratedPowerKw: turbine.ratedPowerKw,
     }),
+    months: result.months?.map((m) => ({ ...m, month: new Date(m.month) })) ?? null,
+    rejections: result.rejections,
+    history,
+    runs,
+    statusPageUrl: STATUS_PAGE_URL,
   };
 }

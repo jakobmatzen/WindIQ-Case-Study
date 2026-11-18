@@ -50,3 +50,44 @@ export function formatDateTime(value: Date): string {
 export function formatDate(value: Date): string {
   return date.format(value);
 }
+
+const dayTime = new Intl.DateTimeFormat("de-DE", {
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: TIME_ZONE,
+});
+
+/** 18.11., 21:09 */
+export function formatDayTime(value: Date): string {
+  return dayTime.format(value);
+}
+
+// Months are calendar months in UTC (see core/yield), so they are named in UTC too.
+const monthYear = new Intl.DateTimeFormat("de-DE", {
+  month: "short",
+  year: "2-digit",
+  timeZone: "UTC",
+});
+const monthLong = new Intl.DateTimeFormat("de-DE", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const monthLetter = new Intl.DateTimeFormat("de-DE", { month: "narrow", timeZone: "UTC" });
+
+/** Nov 25 */
+export function formatMonth(month: Date): string {
+  return monthYear.format(month).replace(".", "");
+}
+
+/** November 2025 */
+export function formatMonthLong(month: Date): string {
+  return monthLong.format(month);
+}
+
+/** N */
+export function formatMonthLetter(month: Date): string {
+  return monthLetter.format(month);
+}

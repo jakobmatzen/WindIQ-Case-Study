@@ -53,31 +53,35 @@ export async function insertYieldResult(
   readingsSyncedAt: Date,
 ): Promise<void> {
   const { basis, coverage } = result;
-  await getDb().insert(yieldResults).values({
-    mastId: basis.mastId,
-    measurementHeightM: basis.measurementHeightM,
-    turbineId: basis.turbineId,
-    turbineVersion: basis.turbineVersion,
-    siteId: basis.siteId,
-    siteVersion: basis.siteVersion,
-    windowStart: coverage.window.start,
-    windowEnd: coverage.window.end,
-    windowHours: coverage.window.hours,
-    readingsSyncedAt,
-    validHours: coverage.validHours,
-    rejectedHours: coverage.rejectedHours,
-    missingHours: coverage.missingHours,
-    coverageRatio: coverage.ratio,
-    quality: result.quality,
-    meanWindSpeedMs: result.meanWindSpeedMs,
-    hubHeightFactor: result.hubHeightFactor,
-    measuredEnergyMwh: result.measuredEnergyMwh,
-    grossAepMwh: result.grossAepMwh,
-    lossFactor: result.lossFactor,
-    netAepMwh: result.netAepMwh,
-    p50Mwh: result.p50Mwh,
-    p90Mwh: result.p90Mwh,
-  });
+  await getDb()
+    .insert(yieldResults)
+    .values({
+      mastId: basis.mastId,
+      measurementHeightM: basis.measurementHeightM,
+      turbineId: basis.turbineId,
+      turbineVersion: basis.turbineVersion,
+      siteId: basis.siteId,
+      siteVersion: basis.siteVersion,
+      windowStart: coverage.window.start,
+      windowEnd: coverage.window.end,
+      windowHours: coverage.window.hours,
+      readingsSyncedAt,
+      validHours: coverage.validHours,
+      rejectedHours: coverage.rejectedHours,
+      missingHours: coverage.missingHours,
+      coverageRatio: coverage.ratio,
+      quality: result.quality,
+      meanWindSpeedMs: result.meanWindSpeedMs,
+      hubHeightFactor: result.hubHeightFactor,
+      measuredEnergyMwh: result.measuredEnergyMwh,
+      grossAepMwh: result.grossAepMwh,
+      lossFactor: result.lossFactor,
+      netAepMwh: result.netAepMwh,
+      p50Mwh: result.p50Mwh,
+      p90Mwh: result.p90Mwh,
+      months: result.months.map((m) => ({ ...m, month: m.month.toISOString() })),
+      rejections: result.rejections,
+    });
 }
 
 /** The newest yield result of a mast, or null before the first calculation. */
