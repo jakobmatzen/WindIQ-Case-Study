@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { MEASUREMENT_STATUSES } from "@/core/measurement";
 import type { PowerCurvePoint } from "@/core/turbine";
-import { YIELD_QUALITIES } from "@/core/yield";
+import { YIELD_QUALITIES, type RejectionReason } from "@/core/yield";
 
 /**
  * Edit/extend the schema here, then run `bun run db:generate --name <change>`
@@ -140,6 +140,14 @@ export const siteVersions = pgTable(
   (t) => [primaryKey({ columns: [t.siteId, t.version] })],
 ).enableRLS();
 
+/** `MonthYield` as stored in JSON: the month as an ISO string. */
+export type StoredMonth = {
+  month: string;
+  hours: number;
+  validHours: number;
+  energyMwh: number | null;
+};
+
 export const yieldQuality = pgEnum("yield_quality", YIELD_QUALITIES);
 
 /**
@@ -182,6 +190,10 @@ export const yieldResults = pgTable(
     netAepMwh: doublePrecision("net_aep_mwh").notNull(),
     p50Mwh: doublePrecision("p50_mwh").notNull(),
     p90Mwh: doublePrecision("p90_mwh").notNull(),
+    /** The window per calendar month (see `MonthYield`); null for rows stored before. */
+    months: jsonb("months").$type<StoredMonth[]>(),
+    /** Rejected readings in the window per reason; null for rows stored before. */
+    rejections: jsonb("rejections").$type<Record<RejectionReason, number>>(),
   },
   (t) => [
     foreignKey({

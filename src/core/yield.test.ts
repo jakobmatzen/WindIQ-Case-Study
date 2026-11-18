@@ -3,7 +3,7 @@ import { referenceSite, referenceTurbine } from "./__fixtures__/reference-turbin
 import { rollingYear, type HourWindow } from "./coverage";
 import type { Mast } from "./mast";
 import type { MeasurementStatus } from "./measurement";
-import { calculateYield, sameFingerprint, type YieldFingerprint } from "./yield";
+import { calculateYield, isPartialMonth, sameFingerprint, type YieldFingerprint } from "./yield";
 
 const HOUR_MS = 3_600_000;
 
@@ -159,6 +159,90 @@ describe("calculateYield", () => {
 
   test("has no mean wind, rather than 0 m/s, when no hour is valid", () => {
     expect(yieldOf(hours(year, () => rejected)).meanWindSpeedMs).toBeNull();
+  });
+});
+
+describe("calculateYield per month", () => {
+  test("splits the rolling year into 13 UTC calendar months, the first and last partial", () => {
+    // The window runs from 18 Nov 2025 00:00 to 17 Nov 2026 23:00 UTC.
+    const { months } = yieldOf(hours(year, () => valid(AT_8_MS_HUB)));
+
+    expect(months).toHaveLength(13);
+    expect(months[0]?.month).toEqual(new Date("2025-11-01T00:00:00Z"));
+    expect(months[0]?.hours).toBe(13 * 24);
+    expect(months[3]?.month).toEqual(new Date("2026-02-01T00:00:00Z"));
+    expect(months[3]?.hours).toBe(28 * 24);
+    expect(months[12]?.month).toEqual(new Date("2026-11-01T00:00:00Z"));
+    expect(months[12]?.hours).toBe(17 * 24);
+    expect(months.map(isPartialMonth)).toEqual([true, ...Array(11).fill(false), true]);
+  });
+
+  test("adds up to gross AEP, even with gaps of different size per month", () => {
+    const at = (i: number) => new Date(year.start.getTime() + i * HOUR_MS);
+    const result = yieldOf(
+      hours(year, (i) => {
+        const hour = at(i);
+        // 72 hours missing in April, every 10th hour rejected in January
+        if (hour.getUTCMonth() === 3 && hour.getUTCDate() <= 3) return undefined;
+        if (hour.getUTCMonth() === 0 && i % 10 === 0) return rejected;
+        // windier in winter, so the gaps weigh differently
+        return valid(hour.getUTCMonth() < 3 ? 9 : 5 + (i % 4));
+      }),
+    );
+
+    const sum = result.months.reduce((total, m) => total + (m.energyMwh ?? 0), 0);
+    expect(sum).toBeCloseTo(result.grossAepMwh, 6);
+  });
+
+  test("scales a month with a gap up to the full month", () => {
+    // 1,590 kW every hour, but the first 72 hours of April have no record
+    const result = yieldOf(
+      hours(year, (i) => {
+        const hour = new Date(year.start.getTime() + i * HOUR_MS);
+        const gap = hour.getUTCMonth() === 3 && hour.getUTCDate() <= 3;
+        return gap ? undefined : valid(AT_8_MS_HUB);
+      }),
+    );
+    const april = result.months[5];
+
+    expect(april?.month).toEqual(new Date("2026-04-01T00:00:00Z"));
+    expect(april?.validHours).toBe(720 - 72);
+    // 1.59 MWh × 720 h, as if April had no gap
+    expect(april?.energyMwh).toBeCloseTo(1_144.8, 1);
+  });
+
+  test("has no energy, rather than 0 MWh, for a month without a valid hour", () => {
+    const result = yieldOf(
+      hours(year, (i) => {
+        const hour = new Date(year.start.getTime() + i * HOUR_MS);
+        return hour.getUTCMonth() === 3 ? rejected : valid(AT_8_MS_HUB);
+      }),
+    );
+
+    expect(result.months[5]?.energyMwh).toBeNull();
+  });
+});
+
+describe("calculateYield rejections", () => {
+  test("counts rejected readings per reason, next to the hours without a record", () => {
+    const reasons = ["missing", "sentinel", "out_of_range", "unparseable", "unknown_unit"] as const;
+    const result = yieldOf(
+      hours(year, (i) => {
+        if (i < 10) return undefined; // 10 hours without a record
+        if (i < 25) return { status: reasons[i % 5]!, windSpeedMs: null }; // 3 of each reason
+        if (i < 27) return { status: "sentinel", windSpeedMs: null };
+        return valid(AT_8_MS_HUB);
+      }),
+    );
+
+    expect(result.rejections).toEqual({
+      missing: 3,
+      sentinel: 5,
+      out_of_range: 3,
+      unparseable: 3,
+      unknown_unit: 3,
+    });
+    expect(result.coverage.missingHours).toBe(10);
   });
 });
 

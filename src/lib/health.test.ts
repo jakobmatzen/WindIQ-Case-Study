@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { evaluateSyncFreshness, sourceOutage } from "./health";
+import { evaluateSyncFreshness, runDisplayStatus, sourceOutage } from "./health";
 
 const now = new Date("2026-11-20T12:00:00Z");
 
@@ -42,5 +42,23 @@ describe("sourceOutage", () => {
 
   test("no outage before the first sync: then there is no result to keep showing", () => {
     expect(sourceOutage(null, now)).toBeNull();
+  });
+});
+
+describe("runDisplayStatus", () => {
+  test("a finished run keeps its status", () => {
+    const startedAt = new Date("2026-11-20T08:00:00Z");
+    expect(runDisplayStatus({ status: "success", startedAt }, now)).toBe("success");
+    expect(runDisplayStatus({ status: "error", startedAt }, now)).toBe("error");
+  });
+
+  test("a run started within the limit is still running", () => {
+    const startedAt = new Date("2026-11-20T10:00:00Z");
+    expect(runDisplayStatus({ status: "running", startedAt }, now, 120)).toBe("running");
+  });
+
+  test("a run still open after the limit was aborted (the worker stopped mid-run)", () => {
+    const startedAt = new Date("2026-11-20T09:59:00Z");
+    expect(runDisplayStatus({ status: "running", startedAt }, now, 120)).toBe("aborted");
   });
 });

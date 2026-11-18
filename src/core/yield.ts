@@ -10,13 +10,14 @@
  */
 import {
   calculateCoverage,
+  HOUR_MS,
   HOURS_PER_YEAR,
   isInWindow,
   type Coverage,
   type HourWindow,
 } from "./coverage";
 import type { Mast } from "./mast";
-import type { MeasurementStatus } from "./measurement";
+import { MEASUREMENT_STATUSES, type MeasurementStatus } from "./measurement";
 import type { Site } from "./site";
 import { powerAt, type Turbine } from "./turbine";
 
@@ -61,6 +62,27 @@ export type YieldBasis = {
   siteVersion: number;
 };
 
+/** Why a reading was not used: every status except `valid`. */
+export type RejectionReason = Exclude<MeasurementStatus, "valid">;
+
+export const REJECTION_REASONS = MEASUREMENT_STATUSES.filter(
+  (s): s is RejectionReason => s !== "valid",
+);
+
+/** One calendar month (UTC) of the window; the first and last month are usually partial. */
+export type MonthYield = {
+  /** First hour of the calendar month, UTC (not of its part inside the window). */
+  month: Date;
+  /** Hours of this month inside the window. */
+  hours: number;
+  validHours: number;
+  /**
+   * Gross energy of the month, MWh: its valid hours scaled up to all its hours in the window,
+   * then all months scaled together so they add up to gross AEP. Null without a valid hour.
+   */
+  energyMwh: number | null;
+};
+
 export type YieldResult = {
   basis: YieldBasis;
   coverage: Coverage;
@@ -78,24 +100,84 @@ export type YieldResult = {
   netAepMwh: number;
   p50Mwh: number;
   p90Mwh: number;
+  /** The window split into calendar months, oldest first. */
+  months: MonthYield[];
+  /** Rejected readings in the window per reason. Hours without a record are in `coverage`. */
+  rejections: Record<RejectionReason, number>;
 };
+
+function monthStart(hour: Date): Date {
+  return new Date(Date.UTC(hour.getUTCFullYear(), hour.getUTCMonth(), 1));
+}
+
+/** Whether only part of the calendar month lies inside the window (the first and last month). */
+export function isPartialMonth(m: Pick<MonthYield, "month" | "hours">): boolean {
+  const next = Date.UTC(m.month.getUTCFullYear(), m.month.getUTCMonth() + 1, 1);
+  return m.hours < (next - m.month.getTime()) / HOUR_MS;
+}
+
+/** The calendar months the window touches, with how many of their hours lie inside it. */
+function monthsOf(window: HourWindow): MonthYield[] {
+  const months: MonthYield[] = [];
+  let month = monthStart(window.start);
+  while (month.getTime() <= window.end.getTime()) {
+    const next = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 1));
+    const from = Math.max(month.getTime(), window.start.getTime());
+    const to = Math.min(next.getTime(), window.end.getTime() + HOUR_MS);
+    months.push({ month, hours: (to - from) / HOUR_MS, validHours: 0, energyMwh: null });
+    month = next;
+  }
+  return months;
+}
+
+/**
+ * Fills in each month's gross energy from its measured energy. Each month is scaled up by its own
+ * coverage, so a gap does not make it look smaller; then all months are scaled by one common
+ * factor so they add up to gross AEP, which is extrapolated over the whole year at once.
+ */
+function scaleMonths(months: MonthYield[], measuredKwh: number[], grossAepMwh: number): void {
+  const fullMonth = months.map((m, i) =>
+    m.validHours === 0 ? null : ((measuredKwh[i] ?? 0) / 1000) * (m.hours / m.validHours),
+  );
+  const total = fullMonth.reduce<number>((sum, e) => sum + (e ?? 0), 0);
+  months.forEach((m, i) => {
+    const e = fullMonth[i] ?? null;
+    m.energyMwh = e === null ? null : total === 0 ? 0 : (e * grossAepMwh) / total;
+  });
+}
 
 export function calculateYield({ readings, window, mast, turbine, site }: YieldInput): YieldResult {
   const coverage = calculateCoverage(readings, window);
   const hubHeightFactor = (turbine.hubHeightM / mast.measurementHeightM) ** site.shearExponent;
+  const months = monthsOf(window);
+  const monthIndex = new Map(months.map((m, i) => [m.month.getTime(), i]));
+  const monthKwh = months.map(() => 0);
+
+  const rejections = Object.fromEntries(REJECTION_REASONS.map((r) => [r, 0])) as Record<
+    RejectionReason,
+    number
+  >;
 
   let measuredEnergyKwh = 0;
   let windSumMs = 0;
   for (const { hour, status, windSpeedMs } of readings) {
+    if (status !== "valid" && isInWindow(hour, window)) rejections[status]++;
     // The same hours calculateCoverage counts as valid, so energy and validHours always match.
     if (status !== "valid" || windSpeedMs === null || !isInWindow(hour, window)) continue;
-    measuredEnergyKwh += powerAt(turbine, windSpeedMs * hubHeightFactor); // kW × 1 h
+    const kwh = powerAt(turbine, windSpeedMs * hubHeightFactor); // kW × 1 h
+    measuredEnergyKwh += kwh;
     windSumMs += windSpeedMs;
+    const i = monthIndex.get(monthStart(hour).getTime());
+    if (i !== undefined) {
+      monthKwh[i] = (monthKwh[i] ?? 0) + kwh;
+      months[i]!.validHours++;
+    }
   }
   const measuredEnergyMwh = measuredEnergyKwh / 1000;
 
   const grossAepMwh =
     coverage.validHours === 0 ? 0 : (measuredEnergyMwh * HOURS_PER_YEAR) / coverage.validHours;
+  scaleMonths(months, monthKwh, grossAepMwh);
   const { availability, electrical, wake } = site.losses;
   const lossFactor = (1 - availability) * (1 - electrical) * (1 - wake);
   const netAepMwh = grossAepMwh * lossFactor;
@@ -119,6 +201,8 @@ export function calculateYield({ readings, window, mast, turbine, site }: YieldI
     netAepMwh,
     p50Mwh: netAepMwh,
     p90Mwh: netAepMwh * (1 - Z_90 * site.uncertainty),
+    months,
+    rejections,
   };
 }
 

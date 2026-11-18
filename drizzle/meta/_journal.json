@@ -36,6 +36,13 @@
       "when": 1795029054017,
       "tag": "0004_yield-mean-wind",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795036944964,
+      "tag": "0005_yield-months-rejections",
+      "breakpoints": true
     }
   ]
 }

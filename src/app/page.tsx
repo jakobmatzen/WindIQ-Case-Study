@@ -1,8 +1,12 @@
 import { Suspense } from "react";
+import { DataQuality } from "@/components/dashboard/data-quality";
 import { KeyFigures } from "@/components/dashboard/key-figures";
 import { LossWaterfall } from "@/components/dashboard/loss-waterfall";
+import { MonthlyEnergy } from "@/components/dashboard/monthly-energy";
 import { SiteRail } from "@/components/dashboard/site-rail";
+import { SyncRuns } from "@/components/dashboard/sync-runs";
 import { WindChain } from "@/components/dashboard/wind-chain";
+import { YieldTrend } from "@/components/dashboard/yield-trend";
 import { getDashboard } from "@/server/dashboard";
 
 async function Dashboard() {
@@ -67,6 +71,12 @@ async function Dashboard() {
           turbineVersion={data.turbineVersion}
           siteVersion={data.siteVersion}
         />
+        <YieldTrend history={data.history} />
+        <MonthlyEnergy months={data.months} />
+        <div className="grid gap-6 xl:grid-cols-2">
+          <DataQuality rejections={data.rejections} missingHours={data.coverage.missingHours} />
+          <SyncRuns runs={data.runs} statusPageUrl={data.statusPageUrl} />
+        </div>
       </main>
     </div>
   );

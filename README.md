@@ -74,6 +74,8 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 18.11. | Oberfläche erst als Prototypen (sechs Varianten auf der echten Seite), dann eine umgesetzt | Am echten Layout entscheidet es sich besser als in der Vorstellung. Gewählt: Navy-Leiste mit P90/P50 und ein Wasserfall von brutto bis P90, im Stil der WindIQ-App. |
 | 18.11. | Das Dashboard rechnet nicht selbst, es zeichnet die gespeicherte Rechnung Schritt für Schritt nach | Gutachtende sehen jeden Zwischenwert mit Version. Ein Test stellt sicher, dass Herleitung und gespeichertes Ergebnis dieselben Zahlen liefern. |
 | 18.11. | Grafiken als einfaches SVG vom Server statt einer Chart-Bibliothek | Kein JavaScript im Browser, scharf auf dem Handy. Eine Bibliothek lohnt sich erst für Zeitverläufe mit Tooltips. |
+| 18.11. | Der Worker speichert mit jedem Ergebnis auch die Monatswerte und die Ablehnungsgründe | Die Seite rechnet weiterhin nicht selbst, und jedes Ergebnis bleibt mit seiner Monatsaufteilung nachvollziehbar |
+| 18.11. | Tooltips öffnen sofort beim Überfahren und auch per Tippen, weiterhin ohne Chart-Bibliothek | Auf dem Handy gibt es kein Hover. Im Verlauf gehört jedem Punkt der nächstgelegene Streifen, so trifft man ihn auch bei vielen Ergebnissen. |
 
 ## 5. Befunde aus der API
 
@@ -99,6 +101,7 @@ Ein vollständiger Abruf (17.11., 8.707 Stundenwerte über ein Jahr) zeigt, womi
 - **Externe Überwachung:** UptimeRobot ruft `/api/health` für `dev` und `prod` regelmäßig auf und schlägt bei Ausfall per E-Mail Alarm. Die [Statusseite](https://stats.uptimerobot.com/tT5SSEWYNn) ist öffentlich.
 - **Worker:** protokolliert jeden Lauf in der Datenbank (`sync_runs`) und schreibt alle 30 Sekunden ein Lebenszeichen, das Docker überwacht.
 - **Deploy:** nach jedem Deploy prüft ein Smoke-Test `/api/health`.
+- **Betrieb im Dashboard:** die letzten Läufe mit Status, verarbeiteten Werten und Korrekturen, dazu der Link zur Statusseite. Fehlertexte stehen nur im Log, nicht auf der öffentlichen Seite, weil sie interne Hosts nennen können.
 - **Ausfall-Hinweis:** Ist der letzte erfolgreiche Abruf älter als 2 Stunden, zeigt die Seite einen Hinweis. Das zuletzt berechnete Ergebnis bleibt sichtbar.
 - **Logs:** strukturiert (JSON) und rotiert. Jede Wiederholung eines Requests und jeder übersprungene Messwert steht als Warnung im Log.
 
@@ -119,6 +122,7 @@ Bis eine Antwort kommt, gilt jeweils die Arbeitsannahme.
 | Der Messmast hat in der API keine Version. Kann sich die Messhöhe ändern? | ja, möglich. Jedes Ergebnis speichert die verwendete Messhöhe; ändert sie sich, wird neu gerechnet. |
 | Bleibt das Blättern mit `updated_since` stabil, wenn ein Wert währenddessen erneut korrigiert wird? | nein, ein Eintrag kann übersprungen werden. Eine Stunde Überlappung fängt das im Normalbetrieb ab (ein Lauf alle 15 Minuten holt eine Seite). |
 | Volllaststunden und Kapazitätsfaktor: auf Basis von AEP brutto oder netto? | netto (P50): AEP netto / Nennleistung, Kapazitätsfaktor = Volllaststunden / 8.760 h |
+| Energie je Monat: wie werden Monate mit Lücken hochgerechnet, und welche Monate zählen? | Kalendermonate (UTC), der erste und letzte Monat des Zeitraums nur teilweise. Jeder Monat wird mit seiner eigenen Abdeckung auf seine Stunden hochgerechnet, danach werden alle Monate gemeinsam so skaliert, dass ihre Summe AEP brutto ergibt. |
 | Gibt es Rate-Limits oder ein festes Timeout der API? | unbekannt. Jeder Request bricht nach 30 s ab, ein `Retry-After` wird beachtet (höchstens 1 Minute). |
 
 ## 8. Ausblick
