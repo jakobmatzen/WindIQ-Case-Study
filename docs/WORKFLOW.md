@@ -10,8 +10,9 @@ Each of these needs the user's explicit go, every time:
 - creating or switching branches
 - changing GitHub or Linear settings (rulesets, repo settings)
 - merging a PR: the user reviews it, then says "merge #N"
+- applying database migrations (`bun run db:migrate`, `drizzle-kit migrate` or `push`) to any database, including a local throwaway one
 
-Committing on a feature branch needs no go: commit at logical checkpoints with the `commit` skill and tell the user.
+Committing on a feature branch needs no go: commit at logical checkpoints with the `commit` skill and tell the user. Editing `src/db/schema.ts` and generating a migration with `bun run db:generate` need no go either.
 
 ## Branches and merges
 

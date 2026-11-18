@@ -15,6 +15,13 @@
       "when": 1794954034014,
       "tag": "0001_measurements",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795019883940,
+      "tag": "0002_yield",
+      "breakpoints": true
     }
   ]
 }

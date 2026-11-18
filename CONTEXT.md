@@ -115,7 +115,7 @@ Ein voller Abruf (8.707 Stundenwerte) zeigt zusätzlich:
 4. **P50** = AEP netto
    **P90** = P50 × (1 − 1,282 × U) (`U` = `site.uncertainty`)
 
-Plausibilität mit den Beispielwerten der Doku: Mast 100 m, Nabe 140 m, α = 0,2 → Faktor (1,4)^0,2 ≈ 1,07. Verluste 3 % / 2 % / 5 % → netto ≈ 89,4 % von brutto. U = 10 % → P90 ≈ 87,2 % von P50.
+Plausibilität mit den Beispielwerten der Doku: Mast 100 m, Nabe 140 m, α = 0,2 → Faktor (1,4)^0,2 ≈ 1,07. Verluste 3 % / 2 % / 5 % → netto ≈ 90,3 % von brutto (0,97 × 0,98 × 0,95). U = 10 % → P90 ≈ 87,2 % von P50.
 
 ### Annahmen
 
