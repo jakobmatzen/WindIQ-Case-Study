@@ -2,6 +2,14 @@
 
 All versions of the WindIQ case study. Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0-beta.7 – 2026-11-18
+
+- Every WindIQ request has a 30 s timeout; 5xx, 429, network errors and timeouts are retried up to 4 times with growing waits, honouring `Retry-After`
+- An expired token (401) is renewed once and the request repeated
+- Measurement pages and the token response are shape-checked; a reading without a valid hour or version is skipped and logged instead of failing the page
+- Worker logs every retry and skipped reading
+- Start page shows an outage notice once the last successful sync is older than 2 h; the last result stays visible
+
 ## v1.0.0-beta.6 – 2026-11-18
 
 - Worker fetches corrections via `updated_since` from its own per-mast cursor, saved after every page
