@@ -94,29 +94,32 @@ function windiqSource(): MeasurementSource & SiteDataSource {
 }
 
 /**
- * How far each correction fetch reaches back before the saved cursor. Covers clock skew between
- * the source and this server, and readings the source's offset paging skips when a reading on an
- * earlier page is corrected again mid-fetch. Fetching a reading twice is harmless: its version
- * is not higher the second time, so nothing is written.
+ * How far each correction fetch reaches back before the saved cursor. Covers corrections made
+ * while an earlier fetch was paging, and readings the source's offset paging skips when a reading
+ * on an earlier page is corrected again mid-fetch, as long as that fetch spans less than this.
+ * Fetching a reading twice is harmless: its version is not higher the second time.
  */
 const CORRECTION_OVERLAP_MS = 60 * 60_000;
 
 /**
- * Brings the stored readings of the mast up to date, in two passes:
- * 1. Corrections: everything written at the source since the correction cursor (`updated_since`).
- *    The cursor is saved after every page, so a run that fails halfway resumes where it stopped.
- *    Without a cursor (first import, or the first run with this feature) it fetches the whole year,
- *    which brings every correction made so far, and starts the cursor at the time the fetch began,
- *    so corrections made while it was paging are fetched next run.
- * 2. New hours: everything from the newest stored hour on (`since`).
+ * Brings the stored readings of the mast up to date.
+ * Without a correction cursor (first import, or the first run with this feature) it fetches the
+ * whole year, which brings every correction made so far, and starts the cursor from the newest
+ * `updated_at` it saw. Otherwise, in two passes:
+ * 1. New hours: everything from the newest stored hour on (`since`). First, so a correction
+ *    fetch that keeps failing cannot hold back new hours.
+ * 2. Corrections: everything written at the source since the cursor (`updated_since`).
+ * The cursor is saved after every page, so a run that fails halfway resumes where it stopped.
  * A reading is written only when its hour is new or its version is higher than the stored one.
  */
 async function syncMeasurements(source: MeasurementSource, outcome: JobOutcome): Promise<void> {
   const mast = await source.fetchMast();
   await upsertMast(mast);
 
+  /** Stores the new and corrected readings of a page; returns all of them, checked. */
   async function store(page: MeasurementInput[]) {
-    const readings = newestPerHour(page.map(checkMeasurement));
+    const checked = page.map(checkMeasurement);
+    const readings = newestPerHour(checked);
     const stored = await storedVersions(
       mast.id,
       readings.map((r) => r.hour),
@@ -125,25 +128,29 @@ async function syncMeasurements(source: MeasurementSource, outcome: JobOutcome):
     await upsertMeasurements(mast.id, [...added, ...corrected]);
     outcome.items += added.length + corrected.length;
     outcome.corrections += corrected.length;
-    return readings;
+    return checked;
+  }
+
+  /** Stores every page and moves the correction cursor along with the `updated_at`s seen. */
+  async function storeAndAdvance(pages: AsyncIterable<MeasurementInput[]>, from: Date | null) {
+    let cursor = from;
+    for await (const page of pages) {
+      cursor = nextCorrectionCursor(cursor, await store(page), new Date());
+      if (cursor) await saveCorrectionCursor(mast.id, cursor);
+    }
   }
 
   const cursor = await correctionCursor(mast.id);
-  if (cursor) {
-    const updatedSince = new Date(cursor.getTime() - CORRECTION_OVERLAP_MS);
-    let next = cursor;
-    for await (const page of source.fetchMeasurements({ updatedSince })) {
-      next = nextCorrectionCursor(next, await store(page), new Date()) ?? next;
-      await saveCorrectionCursor(mast.id, next);
-    }
-  } else {
-    const fetchStarted = new Date();
-    for await (const page of source.fetchMeasurements({})) await store(page);
-    await saveCorrectionCursor(mast.id, fetchStarted);
+  if (!cursor) {
+    await storeAndAdvance(source.fetchMeasurements({}), null);
+    return;
   }
 
   const since = (await newestMeasurementHour(mast.id)) ?? undefined;
   for await (const page of source.fetchMeasurements({ since })) await store(page);
+
+  const updatedSince = new Date(cursor.getTime() - CORRECTION_OVERLAP_MS);
+  await storeAndAdvance(source.fetchMeasurements({ updatedSince }), cursor);
 }
 
 /**
