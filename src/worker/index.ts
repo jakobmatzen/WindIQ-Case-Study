@@ -91,6 +91,7 @@ function windiqSource(): MeasurementSource & SiteDataSource {
     clientId: requireEnv("WINDIQ_CLIENT_ID"),
     clientSecret: requireEnv("WINDIQ_CLIENT_SECRET"),
     onRetry: (retry) => log("warn", "request retried", { ...retry }),
+    onSkippedReading: (problem) => log("warn", "reading skipped", { problem }),
   });
 }
 

@@ -19,6 +19,8 @@ export type WindiqConfig = {
   timeoutMs?: number;
   /** Called before each wait for a retry, e.g. to log it. */
   onRetry?: (retry: RetryEvent) => void;
+  /** Called for each reading skipped because it cannot be stored (no valid hour or version). */
+  onSkippedReading?: (problem: string) => void;
 };
 
 export type RetryEvent = {
@@ -101,6 +103,7 @@ export function createWindiqSource(config: WindiqConfig): MeasurementSource & Si
   const fetch = config.fetch ?? globalThis.fetch;
   const sleep = config.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const timeoutMs = config.timeoutMs ?? REQUEST_TIMEOUT_MS;
+  const onSkippedReading = config.onSkippedReading ?? (() => {});
   // The pending or finished token request, shared so parallel requests fetch one token, not one each.
   let token: Promise<string> | undefined;
 
@@ -208,7 +211,7 @@ export function createWindiqSource(config: WindiqConfig): MeasurementSource & Si
         if (since) params.since = since.toISOString();
         if (updatedSince) params.updated_since = updatedSince.toISOString();
         if (cursor) params.cursor = cursor;
-        const page = toMeasurementPage(await get("/v1/measurements", params));
+        const page = toMeasurementPage(await get("/v1/measurements", params), onSkippedReading);
         yield page.readings;
         cursor = page.nextCursor;
       } while (cursor);
@@ -286,24 +289,43 @@ function toSite(body: unknown): Site {
 }
 
 /**
- * Checks the fields a reading is stored by (hour, version, update time) strictly: without them a
- * reading cannot be stored at all. The wind speed itself is judged in core, so an odd value is
- * stored as unusable with its raw text instead of stopping the sync.
+ * Checks the fields a reading is stored by (hour, version, update time). A reading without them
+ * cannot be stored, so it is skipped and reported, not the whole page: otherwise every run would
+ * fail on the same page and the sync would stall for good. Wind speed and unit are judged in core,
+ * so an odd value is stored as unusable with its raw text.
  */
-function toMeasurementPage(body: unknown): {
-  readings: MeasurementInput[];
-  nextCursor: string | null;
-} {
-  const page = ShapeReader.of("/v1/measurements", body);
-  const readings = page.list("data").map((m): MeasurementInput => ({
-    timestamp: m.dateTime("timestamp"),
-    windSpeed: windSpeedAsSent(m.raw("wind_speed")),
-    unit: m.string("unit"),
-    windDirectionDeg: directionAsSent(m.raw("wind_direction_deg")),
-    version: m.integer("version"),
-    updatedAt: m.dateTime("updated_at"),
-  }));
+function toMeasurementPage(
+  body: unknown,
+  onSkippedReading: (problem: string) => void,
+): { readings: MeasurementInput[]; nextCursor: string | null } {
+  const page = ShapeReader.of(MEASUREMENTS, body);
+  const data = page.raw("data");
+  if (!Array.isArray(data)) throw new ResponseShapeError(MEASUREMENTS, "data must be a list");
+  const readings: MeasurementInput[] = [];
+  for (const [i, item] of data.entries()) {
+    try {
+      const m = ShapeReader.of(MEASUREMENTS, item, `data[${i}].`);
+      readings.push({
+        timestamp: m.dateTime("timestamp"),
+        windSpeed: windSpeedAsSent(m.raw("wind_speed")),
+        unit: unitAsSent(m.raw("unit")),
+        windDirectionDeg: directionAsSent(m.raw("wind_direction_deg")),
+        version: m.integer("version"),
+        updatedAt: m.dateTime("updated_at"),
+      });
+    } catch (error) {
+      if (!(error instanceof ResponseShapeError)) throw error;
+      onSkippedReading(error.message);
+    }
+  }
   return { readings, nextCursor: page.nullableString("next_cursor") };
+}
+
+const MEASUREMENTS = "/v1/measurements";
+
+/** Core rejects an unknown unit; a missing one is passed on as empty, so it is rejected there too. */
+function unitAsSent(value: unknown): string {
+  return typeof value === "string" ? value : "";
 }
 
 /** Not used for the yield, so anything but a number counts as no direction. */

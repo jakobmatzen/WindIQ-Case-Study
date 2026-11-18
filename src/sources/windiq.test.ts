@@ -489,25 +489,67 @@ describe("WindIQ source: responses with an unexpected shape", () => {
     );
   });
 
-  test("rejects a reading whose timestamp is not a date", async () => {
-    const api = fakeApi({
-      pages: { "": { data: [apiReading("yesterday")], next_cursor: null } },
+  /** Fetches one page holding a good reading and `bad`; returns what came through and the skips. */
+  async function fetchWithOneBad(bad: Record<string, unknown>) {
+    const good = apiReading("2026-01-01T01:00:00Z");
+    const api = fakeApi({ pages: { "": { data: [bad, good], next_cursor: null } } });
+    const skipped: string[] = [];
+    const readings = await collect(
+      source(api, { onSkippedReading: (problem) => void skipped.push(problem) }).fetchMeasurements(
+        {},
+      ),
+    );
+    return { timestamps: readings.map((r) => r.timestamp), skipped };
+  }
+
+  // A reading that cannot be stored (no hour, no version) is skipped, not the whole page:
+  // otherwise every run fails on the same page and the sync stalls for good.
+
+  test("skips a reading whose timestamp is not a date, and keeps the rest of the page", async () => {
+    const result = await fetchWithOneBad({
+      ...apiReading("2026-01-01T00:00:00Z"),
+      timestamp: "yesterday",
     });
 
-    await expect(collect(source(api).fetchMeasurements({}))).rejects.toThrow(
-      "WindIQ /v1/measurements: data[0].timestamp must be a date and time",
-    );
+    expect(result).toEqual({
+      timestamps: ["2026-01-01T01:00:00Z"],
+      skipped: ["WindIQ /v1/measurements: data[0].timestamp must be a date and time"],
+    });
   });
 
-  test("rejects a reading whose timestamp has no time zone", async () => {
+  test("skips a reading whose timestamp has no time zone", async () => {
     // Without an offset the hour depends on the server's time zone: duplicate or missing hours.
-    const api = fakeApi({
-      pages: { "": { data: [apiReading("2026-01-01T00:00:00")], next_cursor: null } },
+    const result = await fetchWithOneBad(apiReading("2026-01-01T00:00:00"));
+
+    expect(result.skipped).toEqual([
+      "WindIQ /v1/measurements: data[0].timestamp must be a date and time",
+    ]);
+  });
+
+  test("skips a reading without a whole-number version", async () => {
+    const result = await fetchWithOneBad({ ...apiReading("2026-01-01T00:00:00Z"), version: "2" });
+
+    expect(result.skipped).toEqual(["WindIQ /v1/measurements: data[0].version must be a number"]);
+  });
+
+  test("skips a reading without a valid update time", async () => {
+    const result = await fetchWithOneBad({
+      ...apiReading("2026-01-01T00:00:00Z"),
+      updated_at: null,
     });
 
-    await expect(collect(source(api).fetchMeasurements({}))).rejects.toThrow(
-      "WindIQ /v1/measurements: data[0].timestamp must be a date and time",
-    );
+    expect(result.skipped).toEqual([
+      "WindIQ /v1/measurements: data[0].updated_at must be a date and time",
+    ]);
+  });
+
+  test("passes on a missing unit as empty, for core to reject as an unknown unit", async () => {
+    const reading = { ...apiReading("2026-01-01T00:00:00Z"), unit: null };
+    const api = fakeApi({ pages: { "": { data: [reading], next_cursor: null } } });
+
+    const [input] = await collect(source(api).fetchMeasurements({}));
+
+    expect(input?.unit).toBe("");
   });
 
   test("passes on a wind direction of an unexpected type as missing", async () => {
@@ -518,15 +560,6 @@ describe("WindIQ source: responses with an unexpected shape", () => {
     const [input] = await collect(source(api).fetchMeasurements({}));
 
     expect(input?.windDirectionDeg).toBeNull();
-  });
-
-  test("rejects a reading without a whole-number version", async () => {
-    const reading = { ...apiReading("2026-01-01T00:00:00Z"), version: "2" };
-    const api = fakeApi({ pages: { "": { data: [reading], next_cursor: null } } });
-
-    await expect(collect(source(api).fetchMeasurements({}))).rejects.toThrow(
-      "WindIQ /v1/measurements: data[0].version must be a number",
-    );
   });
 
   test("passes on a wind speed of an unexpected type as text, for core to reject", async () => {
