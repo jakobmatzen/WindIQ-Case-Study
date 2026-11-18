@@ -2,6 +2,13 @@
 
 All versions of the WindIQ case study. Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0-beta.8 – 2026-11-18
+
+- Dashboard in WindIQ's style: navy rail with site, data status, app version, P90 (bank) and P50 (project developers), data coverage with the 70 % / 90 % thresholds
+- Key figures: gross and net AEP, full-load hours, capacity factor
+- Derivation for consultants: mean wind at mast → height factor → hub, then a waterfall from gross over each loss to net and P90, each step with its turbine or site version
+- Each result now stores the mean wind at the mast (migration 0004); `deriveYield` in core re-traces the stored result, tested against the reference values
+
 ## v1.0.0-beta.7 – 2026-11-18
 
 - Every WindIQ request has a 30 s timeout; 5xx, 429, network errors and timeouts are retried up to 4 times with growing waits, honouring `Retry-After`
