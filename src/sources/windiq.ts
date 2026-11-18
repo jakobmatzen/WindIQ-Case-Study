@@ -1,6 +1,8 @@
 import type { Mast } from "@/core/mast";
 import type { MeasurementInput } from "@/core/measurement";
-import type { MeasurementSource } from "./types";
+import type { Site } from "@/core/site";
+import type { Turbine } from "@/core/turbine";
+import type { MeasurementSource, SiteDataSource } from "./types";
 
 /** Adapter for the WindIQ mock API (docs: <baseUrl>/docs). */
 
@@ -33,6 +35,30 @@ export type ApiMast = {
   commissioned_at: string;
 };
 
+export type ApiTurbine = {
+  id: string;
+  name: string;
+  rated_power_kw: number;
+  hub_height_m: number;
+  rotor_diameter_m: number;
+  cut_in_wind_speed_ms: number;
+  cut_out_wind_speed_ms: number;
+  power_curve: { wind_speed_ms: number; power_kw: number }[];
+  version: number;
+  updated_at: string;
+};
+
+export type ApiSite = {
+  id: string;
+  name: string;
+  mast_id: string;
+  shear_exponent: number;
+  losses: { availability: number; electrical: number; wake: number };
+  uncertainty: number;
+  version: number;
+  updated_at: string;
+};
+
 export type ApiMeasurementPage = { data: ApiMeasurement[]; next_cursor: string | null };
 
 const PAGE_SIZE = 500;
@@ -41,7 +67,7 @@ const PAGE_SIZE = 500;
 const MAX_ATTEMPTS = 4;
 const RETRY_BASE_DELAY_MS = 1_000;
 
-export function createWindiqSource(config: WindiqConfig): MeasurementSource {
+export function createWindiqSource(config: WindiqConfig): MeasurementSource & SiteDataSource {
   const fetch = config.fetch ?? globalThis.fetch;
   const sleep = config.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   let token: string | undefined;
@@ -76,6 +102,8 @@ export function createWindiqSource(config: WindiqConfig): MeasurementSource {
 
   return {
     fetchMast: async () => toMast(await get<ApiMast>("/v1/mast", {})),
+    fetchTurbine: async () => toTurbine(await get<ApiTurbine>("/v1/turbine", {})),
+    fetchSite: async () => toSite(await get<ApiSite>("/v1/site", {})),
 
     async *fetchMeasurements({ since }) {
       let cursor: string | null = null;
@@ -101,6 +129,38 @@ function toMast(m: ApiMast): Mast {
     measurementHeightM: m.measurement_height_m,
     operator: m.operator,
     commissionedAt: m.commissioned_at,
+  };
+}
+
+function toTurbine(t: ApiTurbine): Turbine {
+  return {
+    id: t.id,
+    name: t.name,
+    ratedPowerKw: t.rated_power_kw,
+    hubHeightM: t.hub_height_m,
+    rotorDiameterM: t.rotor_diameter_m,
+    cutInWindSpeedMs: t.cut_in_wind_speed_ms,
+    cutOutWindSpeedMs: t.cut_out_wind_speed_ms,
+    powerCurve: t.power_curve.map((p) => ({ windSpeedMs: p.wind_speed_ms, powerKw: p.power_kw })),
+    version: t.version,
+    updatedAt: t.updated_at,
+  };
+}
+
+function toSite(s: ApiSite): Site {
+  return {
+    id: s.id,
+    name: s.name,
+    mastId: s.mast_id,
+    shearExponent: s.shear_exponent,
+    losses: {
+      availability: s.losses.availability,
+      electrical: s.losses.electrical,
+      wake: s.losses.wake,
+    },
+    uncertainty: s.uncertainty,
+    version: s.version,
+    updatedAt: s.updated_at,
   };
 }
 

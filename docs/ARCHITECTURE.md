@@ -66,6 +66,6 @@ Imports across layers use the `@/` alias; relative imports stay inside a layer. 
 
 ## Testing
 
-- **`core` is written test-first** (`mattpocock-skills:tdd`): every rule gets a failing test before the code. Fixtures come from real API data (`-999`, km/h, `+02:00`, strings, `null`), and the calculation is checked against the reference values in `CONTEXT.md` (height factor ≈ 1.07, net ≈ 89.4 % of gross, P90 ≈ 87.2 % of P50).
+- **`core` is written test-first** (`mattpocock-skills:tdd`): every rule gets a failing test before the code. Fixtures come from real API data (`-999`, km/h, `+02:00`, strings, `null`), and the calculation is checked against the reference values in `CONTEXT.md` (height factor ≈ 1.07, net ≈ 90.3 % of gross, P90 ≈ 87.2 % of P50).
 - **`sources`** is tested against a stubbed `fetch`: 401 → new token, 503 → retry, paging until `next_cursor` is `null`.
 - Tests sit next to the code as `*.test.ts` and run with `bun test`.

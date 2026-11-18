@@ -100,11 +100,16 @@ Bis eine Antwort kommt, gilt jeweils die Arbeitsannahme.
 | Ist `-999` ein Fehlercode? | ja, der Wert wird verworfen |
 | Sind negative Werte ein Messfehler oder Windstille? | Messfehler, der Wert wird verworfen. Für den Ertrag fast egal: sie liegen ohnehin unter Cut-in. |
 | Ab welcher Windgeschwindigkeit ist ein Wert unplausibel? | über 40 m/s wird verworfen |
-| Wie gehen fehlende oder verworfene Werte in den Jahresertrag ein: auslassen oder auf ein volles Jahr hochrechnen? hochrechnen: Summe der gültigen Stunden × 8.760 / Anzahl gültiger Stunden. Die Datenabdeckung steht immer daneben, unter 90 % mit Warnung. |
+| Wie gehen fehlende oder verworfene Werte in den Jahresertrag ein: auslassen oder auf ein volles Jahr hochrechnen? | hochrechnen: Ertrag der gültigen Stunden × 8.760 / Anzahl gültiger Stunden. Die Datenabdeckung steht immer daneben, unter 90 % „unsicher“, unter 70 % „nicht aussagekräftig“. |
 | Kommen weitere Einheiten als m/s und km/h vor? | km/h wird umgerechnet, unbekannte Einheiten werden verworfen |
 | „Letzte 12 Monate“: rollierend oder Kalendermonate? | rollierend, die letzten 8.760 Stunden bis zum neuesten Wert |
 | Kennlinie zwischen den Stützpunkten interpolieren? | ja, linear. Unter Cut-in und über Cut-out ist die Leistung 0. |
 | Sollen frühere Ergebnisse gespeichert werden (P50/P90 im Zeitverlauf)? | ja, ein neues Ergebnis, sobald sich Messwerte, Anlage oder Standort ändern |
+| Der Messmast hat in der API keine Version. Kann sich die Messhöhe ändern? | ja, möglich. Jedes Ergebnis speichert die verwendete Messhöhe; ändert sie sich, wird neu gerechnet. |
+
+## 8. Ausblick
+
+- **Längere Zeiträume:** Die Berechnung nimmt Anfang und Ende als Parameter und normiert immer auf ein Jahr. Sobald mehr als ein Jahr Messdaten vorliegt, lassen sich so mehrjährige Mittel rechnen und anzeigen, ohne die Rechnung zu ändern. Heute liefert die API nur das letzte Jahr, deshalb zeigt die Seite die letzten 8.760 Stunden.
 
 ## Releases
 

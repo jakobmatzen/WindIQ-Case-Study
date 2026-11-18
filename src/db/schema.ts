@@ -1,7 +1,10 @@
 import {
   date,
   doublePrecision,
+  foreignKey,
+  index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -10,6 +13,8 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { MEASUREMENT_STATUSES } from "@/core/measurement";
+import type { PowerCurvePoint } from "@/core/turbine";
+import { YIELD_QUALITIES } from "@/core/yield";
 
 /**
  * Edit/extend the schema here, then run `bun run db:generate --name <change>`
@@ -26,7 +31,7 @@ export const syncStatus = pgEnum("sync_status", ["running", "success", "error"])
 export const syncRuns = pgTable("sync_runs", {
   id: serial("id").primaryKey(),
   // TypeScript-only enum: no DB constraint, so adding a job needs no migration.
-  job: text("job", { enum: ["measurements"] }).notNull(),
+  job: text("job", { enum: ["measurements", "yield"] }).notNull(),
   status: syncStatus("status").notNull().default("running"),
   startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
@@ -76,4 +81,97 @@ export const measurements = pgTable(
     syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [primaryKey({ columns: [t.mastId, t.hour] })],
+).enableRLS();
+
+/**
+ * Every turbine version the source has delivered, stored once and never changed,
+ * so each yield result can point at exactly the power curve it used.
+ */
+export const turbineVersions = pgTable(
+  "turbine_versions",
+  {
+    turbineId: text("turbine_id").notNull(),
+    version: integer("version").notNull(),
+    name: text("name").notNull(),
+    ratedPowerKw: doublePrecision("rated_power_kw").notNull(),
+    hubHeightM: doublePrecision("hub_height_m").notNull(),
+    rotorDiameterM: doublePrecision("rotor_diameter_m").notNull(),
+    cutInWindSpeedMs: doublePrecision("cut_in_wind_speed_ms").notNull(),
+    cutOutWindSpeedMs: doublePrecision("cut_out_wind_speed_ms").notNull(),
+    powerCurve: jsonb("power_curve").$type<PowerCurvePoint[]>().notNull(),
+    /** `updated_at` of this version at the source. */
+    sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }).notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.turbineId, t.version] })],
+).enableRLS();
+
+/** Every site version the source has delivered (shear, losses, uncertainty), stored once. */
+export const siteVersions = pgTable(
+  "site_versions",
+  {
+    siteId: text("site_id").notNull(),
+    version: integer("version").notNull(),
+    name: text("name").notNull(),
+    mastId: text("mast_id").notNull(),
+    shearExponent: doublePrecision("shear_exponent").notNull(),
+    lossAvailability: doublePrecision("loss_availability").notNull(),
+    lossElectrical: doublePrecision("loss_electrical").notNull(),
+    lossWake: doublePrecision("loss_wake").notNull(),
+    uncertainty: doublePrecision("uncertainty").notNull(),
+    sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }).notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.siteId, t.version] })],
+).enableRLS();
+
+export const yieldQuality = pgEnum("yield_quality", YIELD_QUALITIES);
+
+/**
+ * One row per calculated yield, oldest first. A new row whenever readings, turbine or site change,
+ * so the history of P50/P90 stays visible. Each row names the data window and the versions it used.
+ */
+export const yieldResults = pgTable(
+  "yield_results",
+  {
+    id: serial("id").primaryKey(),
+    calculatedAt: timestamp("calculated_at", { withTimezone: true }).defaultNow().notNull(),
+    mastId: text("mast_id")
+      .notNull()
+      .references(() => masts.id),
+    /** h_Mess used; the mast itself has no version at the source. */
+    measurementHeightM: doublePrecision("measurement_height_m").notNull(),
+    turbineId: text("turbine_id").notNull(),
+    turbineVersion: integer("turbine_version").notNull(),
+    siteId: text("site_id").notNull(),
+    siteVersion: integer("site_version").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    windowEnd: timestamp("window_end", { withTimezone: true }).notNull(),
+    windowHours: integer("window_hours").notNull(),
+    validHours: integer("valid_hours").notNull(),
+    rejectedHours: integer("rejected_hours").notNull(),
+    missingHours: integer("missing_hours").notNull(),
+    coverageRatio: doublePrecision("coverage_ratio").notNull(),
+    quality: yieldQuality("quality").notNull(),
+    hubHeightFactor: doublePrecision("hub_height_factor").notNull(),
+    measuredEnergyMwh: doublePrecision("measured_energy_mwh").notNull(),
+    grossAepMwh: doublePrecision("gross_aep_mwh").notNull(),
+    lossFactor: doublePrecision("loss_factor").notNull(),
+    netAepMwh: doublePrecision("net_aep_mwh").notNull(),
+    p50Mwh: doublePrecision("p50_mwh").notNull(),
+    p90Mwh: doublePrecision("p90_mwh").notNull(),
+  },
+  (t) => [
+    foreignKey({
+      name: "yield_results_turbine_version_fk",
+      columns: [t.turbineId, t.turbineVersion],
+      foreignColumns: [turbineVersions.turbineId, turbineVersions.version],
+    }),
+    foreignKey({
+      name: "yield_results_site_version_fk",
+      columns: [t.siteId, t.siteVersion],
+      foreignColumns: [siteVersions.siteId, siteVersions.version],
+    }),
+    index("yield_results_mast_id_id_idx").on(t.mastId, t.id),
+  ],
 ).enableRLS();

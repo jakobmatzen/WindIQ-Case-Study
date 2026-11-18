@@ -78,13 +78,17 @@ export async function listMasts(): Promise<{ id: string; name: string }[]> {
   return getDb().select({ id: masts.id, name: masts.name }).from(masts).orderBy(asc(masts.id));
 }
 
-/** Hour and status of every stored reading of a mast inside the window. */
-export async function measurementStatuses(
+/** Hour, status and wind speed of every stored reading of a mast inside the window. */
+export async function measurementsInWindow(
   mastId: string,
   window: HourWindow,
-): Promise<{ hour: Date; status: MeasurementStatus }[]> {
+): Promise<{ hour: Date; status: MeasurementStatus; windSpeedMs: number | null }[]> {
   return getDb()
-    .select({ hour: measurements.hour, status: measurements.status })
+    .select({
+      hour: measurements.hour,
+      status: measurements.status,
+      windSpeedMs: measurements.windSpeedMs,
+    })
     .from(measurements)
     .where(
       and(eq(measurements.mastId, mastId), between(measurements.hour, window.start, window.end)),
