@@ -30,8 +30,14 @@ describe("sourceOutage", () => {
   });
 
   test("an outage once the last sync is older than 2 hours, in whole hours", () => {
-    expect(sourceOutage(new Date("2026-11-20T09:59:00Z"), now)).toEqual({ hours: 2 });
-    expect(sourceOutage(new Date("2026-11-19T12:00:00Z"), now)).toEqual({ hours: 24 });
+    expect(sourceOutage(new Date("2026-11-20T09:59:00Z"), now)).toEqual({ duration: "2 h" });
+    expect(sourceOutage(new Date("2026-11-19T12:00:00Z"), now)).toEqual({ duration: "24 h" });
+  });
+
+  test("an outage shorter than an hour, with a lower limit, in minutes instead of 0 h", () => {
+    expect(sourceOutage(new Date("2026-11-20T11:15:00Z"), now, 30)).toEqual({
+      duration: "45 min",
+    });
   });
 
   test("no outage before the first sync: then there is no result to keep showing", () => {

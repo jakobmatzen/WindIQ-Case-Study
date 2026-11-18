@@ -96,8 +96,8 @@ class TransientError extends Error {}
 type Answer = { status: number; text: string; retryAfterMs: number | null };
 
 const isSuccess = (status: number) => status >= 200 && status < 300;
-/** Server errors and rate limiting may pass; other 4xx will not, so they are not retried. */
-const isTransient = (status: number) => status >= 500 || status === 429;
+/** Server errors, rate limiting and request timeouts may pass; other 4xx will not, so they are not retried. */
+const isTransient = (status: number) => status >= 500 || status === 429 || status === 408;
 
 export function createWindiqSource(config: WindiqConfig): MeasurementSource & SiteDataSource {
   const fetch = config.fetch ?? globalThis.fetch;
@@ -318,7 +318,9 @@ function toMeasurementPage(
       onSkippedReading(error.message);
     }
   }
-  return { readings, nextCursor: page.nullableString("next_cursor") };
+  // An empty cursor ends paging like null, as `while (cursor)` always treated it.
+  const nextCursor = page.raw("next_cursor") === "" ? null : page.nullableString("next_cursor");
+  return { readings, nextCursor };
 }
 
 const MEASUREMENTS = "/v1/measurements";

@@ -21,7 +21,7 @@ export async function getLastSuccessfulRuns(): Promise<{
 }
 
 /** How long the data source has been unreachable, or null while the sync works. */
-export async function getSourceOutage(): Promise<{ hours: number } | null> {
+export async function getSourceOutage(): Promise<{ duration: string } | null> {
   await connection(); // request time only: the build never touches the database
   return sourceOutage(await lastSuccessfulSync("measurements"), new Date(), maxSyncAgeMinutes());
 }

@@ -363,15 +363,6 @@ describe("WindIQ source: measurements", () => {
 });
 
 describe("WindIQ source: responses with an unexpected shape", () => {
-  const mast: ApiMast = {
-    id: "WIQ-MM-01",
-    name: "Messmast Spreewald",
-    latitude: 51.8732,
-    longitude: 14.0412,
-    measurement_height_m: 100,
-    operator: "WindIQ",
-    commissioned_at: "2023-04-01",
-  };
   const turbine: ApiTurbine = {
     id: "WIQ-T36",
     name: "Referenzanlage 3,6 MW",
@@ -436,7 +427,7 @@ describe("WindIQ source: responses with an unexpected shape", () => {
   });
 
   test("rejects a mast without a measurement height", async () => {
-    const api = fakeApi({ pages: {}, mast: broken(mast, { measurement_height_m: 0 }) });
+    const api = fakeApi({ pages: {}, mast: broken(mastBody, { measurement_height_m: 0 }) });
 
     await expect(source(api).fetchMast()).rejects.toThrow(
       "WindIQ /v1/mast: measurement_height_m must be greater than 0",
@@ -479,6 +470,29 @@ describe("WindIQ source: responses with an unexpected shape", () => {
     await expect(collect(source(api).fetchMeasurements({}))).rejects.toThrow(
       "WindIQ /v1/measurements: data must be a list",
     );
+  });
+
+  test("treats an empty cursor as the last page", async () => {
+    const api = fakeApi({
+      pages: { "": { data: [apiReading("2026-01-01T00:00:00Z")], next_cursor: "" } },
+    });
+
+    const readings = await collect(source(api).fetchMeasurements({}));
+
+    expect(readings).toHaveLength(1);
+    expect(api.measurementRequests()).toHaveLength(1);
+  });
+
+  test("names the position of a reading that is not an object", async () => {
+    const good = apiReading("2026-01-01T01:00:00Z");
+    const api = fakeApi({ pages: { "": { data: ["oops", good], next_cursor: null } } });
+    const skipped: string[] = [];
+
+    await collect(
+      source(api, { onSkippedReading: (p) => void skipped.push(p) }).fetchMeasurements({}),
+    );
+
+    expect(skipped).toEqual(["WindIQ /v1/measurements: data[0] must be an object"]);
   });
 
   test("rejects a measurement page whose cursor is not text", async () => {
@@ -587,7 +601,7 @@ describe("WindIQ source: responses with an unexpected shape", () => {
   test("rejects a token response without a token", async () => {
     const api = fakeApi({
       pages: {},
-      mast,
+      mast: mastBody,
       intercept: ({ url }) =>
         url.pathname === "/auth/token" ? Response.json({ token_type: "Bearer" }) : undefined,
     });
@@ -701,6 +715,22 @@ describe("WindIQ source: outages", () => {
     await source(api, { sleep: async (ms) => void delays.push(ms) }).fetchMast();
 
     expect(delays).toEqual([1_000]);
+  });
+
+  test("retries when a proxy answers with a request timeout (408)", async () => {
+    let mastRequests = 0;
+    const api = fakeApi({
+      pages: {},
+      mast: mastBody,
+      intercept: ({ url }) =>
+        url.pathname === "/v1/mast" && ++mastRequests === 1
+          ? new Response(null, { status: 408 })
+          : undefined,
+    });
+
+    const mast = await source(api).fetchMast();
+
+    expect(mast.id).toBe("WIQ-MM-01");
   });
 
   test("retries after a network error", async () => {

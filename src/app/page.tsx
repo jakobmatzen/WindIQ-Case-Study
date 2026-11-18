@@ -90,7 +90,7 @@ async function OutageBanner() {
       role="alert"
       className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive"
     >
-      Datenquelle seit {outage.hours} h nicht erreichbar – angezeigt wird das zuletzt berechnete
+      Datenquelle seit {outage.duration} nicht erreichbar – angezeigt wird das zuletzt berechnete
       Ergebnis.
     </p>
   );

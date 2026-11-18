@@ -21,7 +21,10 @@ export function sourceOutage(
   lastSuccessAt: Date | null,
   now: Date,
   maxAgeMinutes = DEFAULT_MAX_SYNC_AGE_MINUTES,
-): { hours: number } | null {
+): { duration: string } | null {
   const { status, ageMinutes } = evaluateSyncFreshness(lastSuccessAt, now, maxAgeMinutes);
-  return status === "stale" && ageMinutes !== null ? { hours: Math.floor(ageMinutes / 60) } : null;
+  if (status !== "stale" || ageMinutes === null) return null;
+  // Whole hours, or minutes below an hour (only with a limit under 60), never "0 h".
+  const duration = ageMinutes < 60 ? `${ageMinutes} min` : `${Math.floor(ageMinutes / 60)} h`;
+  return { duration };
 }

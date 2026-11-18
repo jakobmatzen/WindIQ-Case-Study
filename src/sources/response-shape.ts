@@ -22,7 +22,9 @@ export class ShapeReader {
 
   static of(endpoint: string, body: unknown, prefix = ""): ShapeReader {
     if (typeof body !== "object" || body === null || Array.isArray(body)) {
-      throw new ResponseShapeError(endpoint, "expected an object");
+      // A nested value names its position, e.g. "data[0] must be an object".
+      const problem = prefix ? `${prefix.slice(0, -1)} must be an object` : "expected an object";
+      throw new ResponseShapeError(endpoint, problem);
     }
     return new ShapeReader(endpoint, body as Record<string, unknown>, prefix);
   }
