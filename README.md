@@ -64,6 +64,10 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 17.11. | Unbrauchbare Messwerte werden mit Grund gespeichert, nicht weggeworfen | Datenabdeckung und Ablehngründe bleiben sichtbar, der Rohwert bleibt für Gutachtende nachvollziehbar |
 | 17.11. | Pro Stunde ein Wert in UTC, die neueste Version gewinnt | Die API liefert Stunden in gemischten Zeitzonen und teils doppelt (siehe 5.) |
 | 17.11. | Aufräum-Review (`simplify`) einmal pro Release statt pro Ticket | Es kostete pro Ticket viel KI-Budget und fand vor allem Kosmetik. Der Fehler-Review bleibt bei jedem PR. |
+| 18.11. | Anlage und Standort werden je Version unveränderlich gespeichert, jedes Ergebnis verweist darauf | Gutachtende sehen zu jedem P50/P90, mit welcher Kennlinie, welchen Verlusten und welcher Unsicherheit gerechnet wurde |
+| 18.11. | Ein neues Ergebnis nur, wenn sich Messwerte, Zeitraum, Anlage oder Standort ändern | Die Ergebnis-Historie zeigt echte Änderungen statt vier gleicher Einträge pro Stunde |
+| 18.11. | Antworten der API werden Feld für Feld geprüft, bevor gerechnet wird | Ein kaputter Wert (z. B. Verlust in Prozent statt als Anteil) bricht den Lauf mit klarer Meldung ab, statt ein falsches Ergebnis anzuzeigen |
+| 18.11. | Datenbank-Migrationen erzeugt Claude selbst, angewendet werden sie nur auf meine Freigabe | Eine Migration verändert eine echte Datenbank und lässt sich schwer zurücknehmen. Im Deploy laufen sie automatisch nach meinem Merge. |
 
 ## 5. Befunde aus der API
 
@@ -85,7 +89,7 @@ Ein vollständiger Abruf (17.11., 8.707 Stundenwerte über ein Jahr) zeigt, womi
 
 ## 6. Betrieb & Monitoring
 
-- **Health-Checks:** `/api/health/live` zeigt, ob der Prozess läuft. `/api/health` prüft die Datenbank und das Alter des letzten erfolgreichen Abrufs und meldet bei Problemen einen Fehler (503).
+- **Health-Checks:** `/api/health/live` zeigt, ob der Prozess läuft. `/api/health` prüft die Datenbank und das Alter des letzten erfolgreichen Abrufs und der letzten erfolgreichen Ertragsrechnung und meldet bei Problemen einen Fehler (503).
 - **Externe Überwachung:** UptimeRobot ruft `/api/health` für `dev` und `prod` regelmäßig auf und schlägt bei Ausfall per E-Mail Alarm. Die [Statusseite](https://stats.uptimerobot.com/tT5SSEWYNn) ist öffentlich.
 - **Worker:** protokolliert jeden Lauf in der Datenbank (`sync_runs`) und schreibt alle 30 Sekunden ein Lebenszeichen, das Docker überwacht.
 - **Deploy:** nach jedem Deploy prüft ein Smoke-Test `/api/health`.

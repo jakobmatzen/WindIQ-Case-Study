@@ -2,6 +2,14 @@
 
 All versions of the WindIQ case study. Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0-beta.5 – 2026-11-18
+
+- Yield calculated test-first: height correction, power curve, gross and net AEP, P50, P90, extrapolated to a full year, with coverage warnings below 90 % and 70 %
+- Turbine and site fetched from the API, shape-checked and stored once per version
+- Worker recalculates after every sync and stores a result with its window and versions whenever an input changed
+- Start page shows P50, P90 and data coverage from the latest result; `/api/health` also watches the yield job
+- Applying database migrations now needs the user's go
+
 ## v1.0.0-beta.4 – 2026-11-17
 
 - Wind readings are checked test-first: UTC hour, m/s value and a status per reading (`missing`, `sentinel`, `out_of_range`, …)
