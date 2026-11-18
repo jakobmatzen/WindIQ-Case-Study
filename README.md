@@ -115,6 +115,7 @@ Bis eine Antwort kommt, gilt jeweils die Arbeitsannahme.
 | Sollen frühere Ergebnisse gespeichert werden (P50/P90 im Zeitverlauf)? | ja, ein neues Ergebnis, sobald sich Messwerte, Anlage oder Standort ändern |
 | Der Messmast hat in der API keine Version. Kann sich die Messhöhe ändern? | ja, möglich. Jedes Ergebnis speichert die verwendete Messhöhe; ändert sie sich, wird neu gerechnet. |
 | Bleibt das Blättern mit `updated_since` stabil, wenn ein Wert währenddessen erneut korrigiert wird? | nein, ein Eintrag kann übersprungen werden. Eine Stunde Überlappung fängt das im Normalbetrieb ab (ein Lauf alle 15 Minuten holt eine Seite). |
+| Volllaststunden und Kapazitätsfaktor: auf Basis von AEP brutto oder netto? | netto (P50): AEP netto / Nennleistung, Kapazitätsfaktor = Volllaststunden / 8.760 h |
 | Gibt es Rate-Limits oder ein festes Timeout der API? | unbekannt. Jeder Request bricht nach 30 s ab, ein `Retry-After` wird beachtet (höchstens 1 Minute). |
 
 ## 8. Ausblick
