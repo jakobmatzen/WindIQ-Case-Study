@@ -3,7 +3,7 @@ import { referenceSite, referenceTurbine } from "./__fixtures__/reference-turbin
 import { rollingYear, type HourWindow } from "./coverage";
 import type { Mast } from "./mast";
 import type { MeasurementStatus } from "./measurement";
-import { calculateYield } from "./yield";
+import { calculateYield, sameFingerprint, type YieldFingerprint } from "./yield";
 
 const HOUR_MS = 3_600_000;
 
@@ -134,5 +134,47 @@ describe("calculateYield", () => {
     expect(result.grossAepMwh).toBe(0);
     expect(result.p50Mwh).toBe(0);
     expect(result.p90Mwh).toBe(0);
+  });
+});
+
+describe("sameFingerprint", () => {
+  const inputs: YieldFingerprint = {
+    mastId: "WIQ-MM-01",
+    measurementHeightM: 100,
+    turbineId: "WIQ-T-01",
+    turbineVersion: 47,
+    siteId: "WIQ-S-01",
+    siteVersion: 47,
+    windowEnd: new Date("2026-11-17T23:00:00Z"),
+    readingsSyncedAt: new Date("2026-11-18T00:05:00Z"),
+  };
+
+  test("nothing changed: no new result", () => {
+    expect(sameFingerprint(inputs, { ...inputs, windowEnd: new Date(inputs.windowEnd) })).toBe(
+      true,
+    );
+  });
+
+  test("a corrected reading in the window: new result", () => {
+    const corrected = { ...inputs, readingsSyncedAt: new Date("2026-11-18T00:20:00Z") };
+    expect(sameFingerprint(inputs, corrected)).toBe(false);
+  });
+
+  test("a new turbine or site version: new result", () => {
+    expect(sameFingerprint(inputs, { ...inputs, turbineVersion: 48 })).toBe(false);
+    expect(sameFingerprint(inputs, { ...inputs, siteVersion: 48 })).toBe(false);
+  });
+
+  test("a new hour, another measurement height or another turbine or site: new result", () => {
+    expect(
+      sameFingerprint(inputs, { ...inputs, windowEnd: new Date("2026-11-18T00:00:00Z") }),
+    ).toBe(false);
+    expect(sameFingerprint(inputs, { ...inputs, measurementHeightM: 120 })).toBe(false);
+    expect(sameFingerprint(inputs, { ...inputs, turbineId: "WIQ-T-02" })).toBe(false);
+    expect(sameFingerprint(inputs, { ...inputs, siteId: "WIQ-S-02" })).toBe(false);
+  });
+
+  test("no result yet: new result", () => {
+    expect(sameFingerprint(null, inputs)).toBe(false);
   });
 });

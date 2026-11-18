@@ -114,12 +114,13 @@ export function createWindiqSource(config: WindiqConfig): MeasurementSource & Si
     fetchTurbine: async () => toTurbine(await get("/v1/turbine", {})),
     fetchSite: async () => toSite(await get("/v1/site", {})),
 
-    async *fetchMeasurements({ since }) {
+    async *fetchMeasurements({ since, updatedSince }) {
       let cursor: string | null = null;
       do {
         // The cursor is an offset into the filtered result, so the filter goes along on every page.
         const params: Record<string, string> = { limit: String(PAGE_SIZE) };
         if (since) params.since = since.toISOString();
+        if (updatedSince) params.updated_since = updatedSince.toISOString();
         if (cursor) params.cursor = cursor;
         // Shape of measurement pages is checked with JAK-14; readings are checked in core.
         const page = (await get("/v1/measurements", params)) as ApiMeasurementPage;

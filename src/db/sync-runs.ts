@@ -10,17 +10,32 @@ export async function startSyncRun(job: SyncJob): Promise<number> {
   return run.id;
 }
 
-export async function finishSyncRun(id: number, itemsProcessed: number): Promise<void> {
+/** What a run stored: items processed, and how many of them corrected a stored reading. */
+export type SyncRunCounts = { items: number; corrections: number };
+
+export async function finishSyncRun(id: number, counts: SyncRunCounts): Promise<void> {
   await getDb()
     .update(syncRuns)
-    .set({ status: "success", finishedAt: new Date(), itemsProcessed })
+    .set({
+      status: "success",
+      finishedAt: new Date(),
+      itemsProcessed: counts.items,
+      corrections: counts.corrections,
+    })
     .where(eq(syncRuns.id, id));
 }
 
-export async function failSyncRun(id: number, error: string): Promise<void> {
+/** Marks a run failed, keeping what it stored before the failure. */
+export async function failSyncRun(id: number, error: string, counts: SyncRunCounts): Promise<void> {
   await getDb()
     .update(syncRuns)
-    .set({ status: "error", finishedAt: new Date(), error })
+    .set({
+      status: "error",
+      finishedAt: new Date(),
+      error,
+      itemsProcessed: counts.items,
+      corrections: counts.corrections,
+    })
     .where(eq(syncRuns.id, id));
 }
 

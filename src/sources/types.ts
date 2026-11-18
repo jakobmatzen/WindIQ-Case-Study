@@ -10,8 +10,15 @@ import type { Turbine } from "@/core/turbine";
 export interface MeasurementSource {
   /** The mast these readings come from. */
   fetchMast(): Promise<Mast>;
-  /** Readings in pages, oldest first. `since` limits them to hours at or after it. */
-  fetchMeasurements(query: { since?: Date }): AsyncIterable<MeasurementInput[]>;
+  /**
+   * Readings in pages. `since` limits them to hours at or after it, oldest hour first.
+   * `updatedSince` limits them to readings written or corrected at or after it, ordered by
+   * that time, so stopping after any page loses nothing that a later fetch would not bring.
+   */
+  fetchMeasurements(query: {
+    since?: Date;
+    updatedSince?: Date;
+  }): AsyncIterable<MeasurementInput[]>;
 }
 
 /**

@@ -7,9 +7,16 @@
  *   once:   add `--once` to run a single sync and exit (manual resync, local checks)
  */
 import { rollingYear } from "@/core/coverage";
-import { checkMeasurement, newestPerHour } from "@/core/measurement";
-import { calculateYield } from "@/core/yield";
 import {
+  checkMeasurement,
+  compareWithStored,
+  newestPerHour,
+  nextCorrectionCursor,
+  type MeasurementInput,
+} from "@/core/measurement";
+import { calculateYield, sameFingerprint } from "@/core/yield";
+import {
+  correctionCursor,
   failSyncRun,
   finishSyncRun,
   insertYieldResult,
@@ -17,9 +24,11 @@ import {
   measurementsInWindow,
   newestMeasurementHour,
   newestReadingSync,
+  saveCorrectionCursor,
   saveSiteVersion,
   saveTurbineVersion,
   startSyncRun,
+  storedVersions,
   upsertMast,
   upsertMeasurements,
   type SyncJob,
@@ -37,22 +46,35 @@ function log(level: "info" | "error", msg: string, extra: Record<string, unknown
   console[level](JSON.stringify({ ts: new Date().toISOString(), level, msg, ...extra }));
 }
 
+/** What a job did so far: items processed, and how many of them corrected a stored reading. */
+type JobOutcome = { items: number; corrections: number };
+
 /**
- * Records a sync run in `sync_runs` around the given job function.
- * Returns the number of items it processed, or null when it failed.
+ * Records a sync run in `sync_runs` around the given job function. The job fills in `outcome` as
+ * it goes, so a run that fails halfway still records what it stored before failing.
+ * Returns the outcome, or null when the job failed.
  */
-async function runJob(job: SyncJob, fn: () => Promise<number>): Promise<number | null> {
+async function runJob(
+  job: SyncJob,
+  fn: (outcome: JobOutcome) => Promise<void>,
+): Promise<JobOutcome | null> {
   const runId = await startSyncRun(job);
   const started = Date.now();
+  const outcome: JobOutcome = { items: 0, corrections: 0 };
   try {
-    const items = await fn();
-    await finishSyncRun(runId, items);
-    log("info", "job succeeded", { job, items, durationMs: Date.now() - started });
-    return items;
+    await fn(outcome);
+    await finishSyncRun(runId, outcome);
+    log("info", "job succeeded", { job, ...outcome, durationMs: Date.now() - started });
+    return outcome;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await failSyncRun(runId, message);
-    log("error", "job failed", { job, error: message, durationMs: Date.now() - started });
+    await failSyncRun(runId, message, outcome);
+    log("error", "job failed", {
+      job,
+      ...outcome,
+      error: message,
+      durationMs: Date.now() - started,
+    });
     return null;
   }
 }
@@ -72,20 +94,56 @@ function windiqSource(): MeasurementSource & SiteDataSource {
 }
 
 /**
- * First run: imports the whole year the source offers. Later runs: everything from the newest
- * stored hour on (that hour included, so a newer version of it is picked up too).
- * Returns the number of readings written.
+ * How far each correction fetch reaches back before the saved cursor. Covers clock skew between
+ * the source and this server, and readings the source's offset paging skips when a reading on an
+ * earlier page is corrected again mid-fetch. Fetching a reading twice is harmless: its version
+ * is not higher the second time, so nothing is written.
  */
-async function syncMeasurements(source: MeasurementSource): Promise<number> {
+const CORRECTION_OVERLAP_MS = 60 * 60_000;
+
+/**
+ * Brings the stored readings of the mast up to date, in two passes:
+ * 1. Corrections: everything written at the source since the correction cursor (`updated_since`).
+ *    The cursor is saved after every page, so a run that fails halfway resumes where it stopped.
+ *    Without a cursor (first import, or the first run with this feature) it fetches the whole year,
+ *    which brings every correction made so far, and starts the cursor at the time the fetch began,
+ *    so corrections made while it was paging are fetched next run.
+ * 2. New hours: everything from the newest stored hour on (`since`).
+ * A reading is written only when its hour is new or its version is higher than the stored one.
+ */
+async function syncMeasurements(source: MeasurementSource, outcome: JobOutcome): Promise<void> {
   const mast = await source.fetchMast();
   await upsertMast(mast);
 
-  const since = (await newestMeasurementHour(mast.id)) ?? undefined;
-  let written = 0;
-  for await (const page of source.fetchMeasurements({ since })) {
-    written += await upsertMeasurements(mast.id, newestPerHour(page.map(checkMeasurement)));
+  async function store(page: MeasurementInput[]) {
+    const readings = newestPerHour(page.map(checkMeasurement));
+    const stored = await storedVersions(
+      mast.id,
+      readings.map((r) => r.hour),
+    );
+    const { added, corrected } = compareWithStored(readings, stored);
+    await upsertMeasurements(mast.id, [...added, ...corrected]);
+    outcome.items += added.length + corrected.length;
+    outcome.corrections += corrected.length;
+    return readings;
   }
-  return written;
+
+  const cursor = await correctionCursor(mast.id);
+  if (cursor) {
+    const updatedSince = new Date(cursor.getTime() - CORRECTION_OVERLAP_MS);
+    let next = cursor;
+    for await (const page of source.fetchMeasurements({ updatedSince })) {
+      next = nextCorrectionCursor(next, await store(page), new Date()) ?? next;
+      await saveCorrectionCursor(mast.id, next);
+    }
+  } else {
+    const fetchStarted = new Date();
+    for await (const page of source.fetchMeasurements({})) await store(page);
+    await saveCorrectionCursor(mast.id, fetchStarted);
+  }
+
+  const since = (await newestMeasurementHour(mast.id)) ?? undefined;
+  for await (const page of source.fetchMeasurements({ since })) await store(page);
 }
 
 /**
@@ -93,9 +151,12 @@ async function syncMeasurements(source: MeasurementSource): Promise<number> {
  * Stores a new result only when something it depends on changed: the readings, the window,
  * h_Mess, or the turbine or site version. Everything it compares comes from the database, so a
  * correction is picked up even when the run right after its sync failed.
- * Returns 1 when it stored a result, else 0.
+ * Counts 1 item when it stored a result, else 0.
  */
-async function recalculateYield(source: MeasurementSource & SiteDataSource): Promise<number> {
+async function recalculateYield(
+  source: MeasurementSource & SiteDataSource,
+  outcome: JobOutcome,
+): Promise<void> {
   const [mast, turbine, site] = await Promise.all([
     source.fetchMast(),
     source.fetchTurbine(),
@@ -109,23 +170,23 @@ async function recalculateYield(source: MeasurementSource & SiteDataSource): Pro
   await saveSiteVersion(site);
 
   const newestHour = await newestMeasurementHour(mast.id);
-  if (!newestHour) return 0;
+  if (!newestHour) return;
   const window = rollingYear(newestHour);
   // Never null here: the newest hour itself lies in the window.
   const readingsSyncedAt = await newestReadingSync(mast.id, window);
   if (!readingsSyncedAt) throw new Error(`no readings for mast ${mast.id} in its own window`);
 
-  const previous = await latestYieldResult(mast.id);
-  const unchanged =
-    previous !== null &&
-    previous.windowEnd.getTime() === newestHour.getTime() &&
-    previous.readingsSyncedAt.getTime() === readingsSyncedAt.getTime() &&
-    previous.measurementHeightM === mast.measurementHeightM &&
-    previous.turbineId === turbine.id &&
-    previous.turbineVersion === turbine.version &&
-    previous.siteId === site.id &&
-    previous.siteVersion === site.version;
-  if (unchanged) return 0;
+  const current = {
+    mastId: mast.id,
+    measurementHeightM: mast.measurementHeightM,
+    turbineId: turbine.id,
+    turbineVersion: turbine.version,
+    siteId: site.id,
+    siteVersion: site.version,
+    windowEnd: newestHour,
+    readingsSyncedAt,
+  };
+  if (sameFingerprint(await latestYieldResult(mast.id), current)) return;
 
   const readings = await measurementsInWindow(mast.id, window);
   const result = calculateYield({ readings, window, mast, turbine, site });
@@ -138,7 +199,7 @@ async function recalculateYield(source: MeasurementSource & SiteDataSource): Pro
     turbineVersion: turbine.version,
     siteVersion: site.version,
   });
-  return 1;
+  outcome.items = 1;
 }
 
 /** One round of all jobs. Never throws, so the loop survives; returns whether everything succeeded. */
@@ -148,9 +209,9 @@ async function tick(): Promise<boolean> {
     // so missing configuration is recorded as a failed run.
     let windiq: ReturnType<typeof windiqSource> | undefined;
     const source = () => (windiq ??= windiqSource());
-    const synced = await runJob("measurements", () => syncMeasurements(source()));
+    const synced = await runJob("measurements", (outcome) => syncMeasurements(source(), outcome));
     // Runs even when the sync failed: a new turbine or site version still changes the result.
-    const calculated = await runJob("yield", () => recalculateYield(source()));
+    const calculated = await runJob("yield", (outcome) => recalculateYield(source(), outcome));
     return synced !== null && calculated !== null;
   } catch (error) {
     // e.g. DB unreachable: log and try again next tick, never crash the loop.
