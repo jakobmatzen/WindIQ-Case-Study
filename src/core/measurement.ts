@@ -1,6 +1,6 @@
 /**
  * Checking a single wind reading: is it usable for the yield calculation, and if not, why not?
- * Rules: CONTEXT.md and the guide's "Offene Fragen an WindIQ". Pure, no I/O.
+ * Rules: CONTEXT.md and the guide's "Annahmen". Pure, no I/O.
  */
 
 /** A reading as a source adapter delivers it, before any checks. */

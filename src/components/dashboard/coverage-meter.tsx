@@ -7,10 +7,15 @@ export const QUALITY_LABEL: Record<YieldQuality, string> = {
   not_meaningful: "nicht aussagekräftig",
 };
 
-const FILL: Record<YieldQuality, string> = {
-  ok: "bg-success-on-navy",
-  uncertain: "bg-warning-on-navy",
-  not_meaningful: "bg-danger-on-navy",
+/**
+ * Fill for a coverage bar, shared by this meter and the monthly strip so a status has one bar color
+ * everywhere. Status text on the rail uses the lighter -on-navy tokens instead, since text needs
+ * more contrast than a bar that always has its value spelled out next to it.
+ */
+export const QUALITY_FILL: Record<YieldQuality, string> = {
+  ok: "bg-success",
+  uncertain: "bg-warning",
+  not_meaningful: "bg-destructive",
 };
 
 const THRESHOLDS = [COVERAGE_THRESHOLDS.meaningful, COVERAGE_THRESHOLDS.ok];
@@ -25,7 +30,7 @@ export function CoverageMeter({ ratio, quality }: { ratio: number; quality: Yiel
       <div className="relative">
         <div className="h-2 overflow-hidden rounded-full bg-white/15">
           <div
-            className={"h-full rounded-full " + FILL[quality]}
+            className={"h-full rounded-full " + QUALITY_FILL[quality]}
             style={{ width: `${Math.min(1, Math.max(0, ratio)) * 100}%` }}
           />
         </div>

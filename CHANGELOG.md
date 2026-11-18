@@ -1,6 +1,13 @@
 # Changelog
 
-All versions of the WindIQ case study. Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
+All versions of the WindIQ case study (Vidia Equity). Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
+
+## v1.0.0-beta.10 – 2026-11-18
+
+- Docs name Vidia Equity as the company and WindIQ as the project
+- README section "Offene Fragen an WindIQ" becomes "Annahmen"; the points asked by email are marked
+- Correct the note on negative wind speeds: small but nonzero effect through extrapolation
+- Data coverage on the navy rail uses the same status colors as the monthly strip
 
 ## v1.0.0-beta.9 – 2026-11-18
 

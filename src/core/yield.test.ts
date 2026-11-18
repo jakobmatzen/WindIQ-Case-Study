@@ -3,7 +3,13 @@ import { referenceSite, referenceTurbine } from "./__fixtures__/reference-turbin
 import { rollingYear, type HourWindow } from "./coverage";
 import type { Mast } from "./mast";
 import type { MeasurementStatus } from "./measurement";
-import { calculateYield, isPartialMonth, sameFingerprint, type YieldFingerprint } from "./yield";
+import {
+  calculateYield,
+  isPartialMonth,
+  qualityOf,
+  sameFingerprint,
+  type YieldFingerprint,
+} from "./yield";
 
 const HOUR_MS = 3_600_000;
 
@@ -285,5 +291,16 @@ describe("sameFingerprint", () => {
 
   test("no result yet: new result", () => {
     expect(sameFingerprint(null, inputs)).toBe(false);
+  });
+});
+
+describe("qualityOf", () => {
+  test("90 % and more is ok, 70 % up to 90 % uncertain, below not meaningful", () => {
+    expect(qualityOf(1)).toBe("ok");
+    expect(qualityOf(0.9)).toBe("ok");
+    expect(qualityOf(0.899)).toBe("uncertain");
+    expect(qualityOf(0.7)).toBe("uncertain");
+    expect(qualityOf(0.699)).toBe("not_meaningful");
+    expect(qualityOf(0)).toBe("not_meaningful");
   });
 });

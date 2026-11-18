@@ -6,7 +6,7 @@ Eine kleine Anwendung, die laufend Windmessdaten abruft, daraus den Jahresertrag
 
 ## 1. Auftrag
 
-Case Study für die Position Fullstack Engineer bei WindIQ. Ein simulierter Messmast liefert stündlich Windgeschwindigkeiten. Daraus entsteht der erwartete Jahresertrag einer Anlage: P50 als Erwartungswert, P90 als konservativer Wert für Banken. Die Anwendung soll öffentlich erreichbar sein, automatisch getestet und ausgeliefert werden und etwa eine Woche stabil laufen. **Im Vordergrund steht Zuverlässigkeit, nicht Funktionsumfang.**
+Case Study für die Position Fullstack Engineer bei Vidia Equity, Projekt WindIQ. Ein simulierter Messmast liefert stündlich Windgeschwindigkeiten. Daraus entsteht der erwartete Jahresertrag einer Anlage: P50 als Erwartungswert, P90 als konservativer Wert für Banken. Die Anwendung soll öffentlich erreichbar sein, automatisch getestet und ausgeliefert werden und etwa eine Woche stabil laufen. **Im Vordergrund steht Zuverlässigkeit, nicht Funktionsumfang.**
 
 ## 2. Architektur auf einen Blick
 
@@ -59,7 +59,7 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 17.11. | Feste Schichten, Grenzen per ESLint geprüft | Die Kernlogik ist testbar und Schritt für Schritt nachvollziehbar. Neue Datenquellen brauchen keinen Umbau. |
 | 17.11. | Kernlogik test-first, gegen echte API-Daten und die Referenzwerte der Doku | Wenn die Zahlen falsch sind, ist alles andere wertlos |
 | 17.11. | Automatischer Code-Review vor jedem PR | eine zweite Prüfung vor meinem eigenen Review |
-| 17.11. | Offene Fragen blockieren nicht | Mit einer dokumentierten Annahme weiterarbeiten (siehe 7.) und anpassen, sobald WindIQ antwortet |
+| 17.11. | Offene Punkte blockieren nicht | Mit einer dokumentierten Annahme weiterarbeiten (siehe 7. Annahmen). Rückfragen an Vidia Equity gebündelt in einer E-Mail. |
 | 17.11. | PRs merged Claude erst auf meine Freigabe | Titel und Nachricht stimmen immer, nichts muss von Hand kopiert werden. Die Kontrolle bleibt bei mir. |
 | 17.11. | Unbrauchbare Messwerte werden mit Grund gespeichert, nicht weggeworfen | Datenabdeckung und Ablehngründe bleiben sichtbar, der Rohwert bleibt für Gutachtende nachvollziehbar |
 | 17.11. | Pro Stunde ein Wert in UTC, die neueste Version gewinnt | Die API liefert Stunden in gemischten Zeitzonen und teils doppelt (siehe 5.) |
@@ -105,17 +105,17 @@ Ein vollständiger Abruf (17.11., 8.707 Stundenwerte über ein Jahr) zeigt, womi
 - **Ausfall-Hinweis:** Ist der letzte erfolgreiche Abruf älter als 2 Stunden, zeigt die Seite einen Hinweis. Das zuletzt berechnete Ergebnis bleibt sichtbar.
 - **Logs:** strukturiert (JSON) und rotiert. Jede Wiederholung eines Requests und jeder übersprungene Messwert steht als Warnung im Log.
 
-## 7. Offene Fragen an WindIQ
+## 7. Annahmen
 
-Bis eine Antwort kommt, gilt jeweils die Arbeitsannahme.
+Wo Aufgabe und API-Doku offen sind, gilt die folgende Annahme. Die mit *nachgefragt* markierten Punkte betreffen den Umgang mit Lücken und unbrauchbaren Werten. Ich habe sie am 18.11. per E-Mail bei Vidia Equity angefragt.
 
-| Frage | Arbeitsannahme |
+| Punkt | Annahme |
 | --- | --- |
-| Ist `-999` ein Fehlercode? | ja, der Wert wird verworfen |
-| Sind negative Werte ein Messfehler oder Windstille? | Messfehler, der Wert wird verworfen. Für den Ertrag fast egal: sie liegen ohnehin unter Cut-in. |
-| Ab welcher Windgeschwindigkeit ist ein Wert unplausibel? | über 40 m/s wird verworfen |
-| Wie gehen fehlende oder verworfene Werte in den Jahresertrag ein: auslassen oder auf ein volles Jahr hochrechnen? | hochrechnen: Ertrag der gültigen Stunden × 8.760 / Anzahl gültiger Stunden. Die Datenabdeckung steht immer daneben, unter 90 % „unsicher“, unter 70 % „nicht aussagekräftig“. |
-| Kommen weitere Einheiten als m/s und km/h vor? | km/h wird umgerechnet, unbekannte Einheiten werden verworfen |
+| Ist `-999` ein Fehlercode? | ja, der Wert wird verworfen. *nachgefragt* |
+| Sind negative Werte ein Messfehler oder Windstille? | Messfehler, der Wert wird verworfen. Der Einfluss ist klein, aber nicht null: Als Windstille gewertet brächten sie 0 kWh, verworfen werden sie mit dem Durchschnitt hochgerechnet (≈ 0,2 % Unterschied). *nachgefragt* |
+| Ab welcher Windgeschwindigkeit ist ein Wert unplausibel? | über 40 m/s wird verworfen. *nachgefragt* |
+| Wie gehen fehlende oder verworfene Werte in den Jahresertrag ein: auslassen oder auf ein volles Jahr hochrechnen? | hochrechnen: Ertrag der gültigen Stunden × 8.760 / Anzahl gültiger Stunden. Die Datenabdeckung steht immer daneben, unter 90 % „unsicher“, unter 70 % „nicht aussagekräftig“. *nachgefragt* |
+| Kommen weitere Einheiten als m/s und km/h vor? | km/h wird umgerechnet, unbekannte Einheiten werden verworfen. *nachgefragt* |
 | „Letzte 12 Monate“: rollierend oder Kalendermonate? | rollierend, die letzten 8.760 Stunden bis zum neuesten Wert |
 | Kennlinie zwischen den Stützpunkten interpolieren? | ja, linear. Unter Cut-in und über Cut-out ist die Leistung 0. |
 | Sollen frühere Ergebnisse gespeichert werden (P50/P90 im Zeitverlauf)? | ja, ein neues Ergebnis, sobald sich Messwerte, Anlage oder Standort ändern |
