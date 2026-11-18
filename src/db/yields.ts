@@ -47,7 +47,11 @@ export async function saveSiteVersion(site: Site): Promise<void> {
     .onConflictDoNothing();
 }
 
-export async function insertYieldResult(result: YieldResult): Promise<void> {
+/** Stores a result; `readingsSyncedAt` is the newest sync of the readings it was calculated from. */
+export async function insertYieldResult(
+  result: YieldResult,
+  readingsSyncedAt: Date,
+): Promise<void> {
   const { basis, coverage } = result;
   await getDb().insert(yieldResults).values({
     mastId: basis.mastId,
@@ -59,6 +63,7 @@ export async function insertYieldResult(result: YieldResult): Promise<void> {
     windowStart: coverage.window.start,
     windowEnd: coverage.window.end,
     windowHours: coverage.window.hours,
+    readingsSyncedAt,
     validHours: coverage.validHours,
     rejectedHours: coverage.rejectedHours,
     missingHours: coverage.missingHours,

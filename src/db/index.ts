@@ -6,6 +6,7 @@ export {
   listMasts,
   measurementsInWindow,
   newestMeasurementHour,
+  newestReadingSync,
   upsertMast,
   upsertMeasurements,
 } from "./measurements";

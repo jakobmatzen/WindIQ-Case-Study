@@ -16,6 +16,7 @@ import {
   latestYieldResult,
   measurementsInWindow,
   newestMeasurementHour,
+  newestReadingSync,
   saveSiteVersion,
   saveTurbineVersion,
   startSyncRun,
@@ -90,12 +91,11 @@ async function syncMeasurements(source: MeasurementSource): Promise<number> {
 /**
  * Fetches mast, turbine and site, stores new versions, and calculates the yield of the rolling year.
  * Stores a new result only when something it depends on changed: the readings, the window,
- * h_Mess, or the turbine or site version. Returns 1 when it stored a result, else 0.
+ * h_Mess, or the turbine or site version. Everything it compares comes from the database, so a
+ * correction is picked up even when the run right after its sync failed.
+ * Returns 1 when it stored a result, else 0.
  */
-async function recalculateYield(
-  source: MeasurementSource & SiteDataSource,
-  readingsChanged: boolean,
-): Promise<number> {
+async function recalculateYield(source: MeasurementSource & SiteDataSource): Promise<number> {
   const [mast, turbine, site] = await Promise.all([
     source.fetchMast(),
     source.fetchTurbine(),
@@ -110,12 +110,16 @@ async function recalculateYield(
 
   const newestHour = await newestMeasurementHour(mast.id);
   if (!newestHour) return 0;
+  const window = rollingYear(newestHour);
+  // Never null here: the newest hour itself lies in the window.
+  const readingsSyncedAt = await newestReadingSync(mast.id, window);
+  if (!readingsSyncedAt) throw new Error(`no readings for mast ${mast.id} in its own window`);
 
   const previous = await latestYieldResult(mast.id);
   const unchanged =
     previous !== null &&
-    !readingsChanged &&
     previous.windowEnd.getTime() === newestHour.getTime() &&
+    previous.readingsSyncedAt.getTime() === readingsSyncedAt.getTime() &&
     previous.measurementHeightM === mast.measurementHeightM &&
     previous.turbineId === turbine.id &&
     previous.turbineVersion === turbine.version &&
@@ -123,10 +127,9 @@ async function recalculateYield(
     previous.siteVersion === site.version;
   if (unchanged) return 0;
 
-  const window = rollingYear(newestHour);
   const readings = await measurementsInWindow(mast.id, window);
   const result = calculateYield({ readings, window, mast, turbine, site });
-  await insertYieldResult(result);
+  await insertYieldResult(result, readingsSyncedAt);
   log("info", "yield calculated", {
     p50Mwh: Math.round(result.p50Mwh),
     p90Mwh: Math.round(result.p90Mwh),
@@ -141,13 +144,14 @@ async function recalculateYield(
 /** One round of all jobs. Never throws, so the loop survives; returns whether everything succeeded. */
 async function tick(): Promise<boolean> {
   try {
-    // The source is created inside each job, so missing configuration is recorded as a failed run.
-    const written = await runJob("measurements", () => syncMeasurements(windiqSource()));
+    // One source per tick (one token), created on first use inside a job,
+    // so missing configuration is recorded as a failed run.
+    let windiq: ReturnType<typeof windiqSource> | undefined;
+    const source = () => (windiq ??= windiqSource());
+    const synced = await runJob("measurements", () => syncMeasurements(source()));
     // Runs even when the sync failed: a new turbine or site version still changes the result.
-    const calculated = await runJob("yield", () =>
-      recalculateYield(windiqSource(), written !== null && written > 0),
-    );
-    return written !== null && calculated !== null;
+    const calculated = await runJob("yield", () => recalculateYield(source()));
+    return synced !== null && calculated !== null;
   } catch (error) {
     // e.g. DB unreachable: log and try again next tick, never crash the loop.
     log("error", "tick failed", { error: error instanceof Error ? error.message : String(error) });

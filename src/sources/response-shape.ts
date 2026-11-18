@@ -44,6 +44,11 @@ export class ShapeReader {
     return Number.isInteger(v) ? v : this.fail(key, "a whole number");
   }
 
+  nonNegative(key: string): number {
+    const v = this.number(key);
+    return v >= 0 ? v : this.fail(key, "0 or more");
+  }
+
   positive(key: string): number {
     const v = this.number(key);
     return v > 0 ? v : this.fail(key, "greater than 0");

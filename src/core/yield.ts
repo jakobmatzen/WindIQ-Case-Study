@@ -8,7 +8,13 @@
  *
  * Pure, no I/O.
  */
-import { calculateCoverage, HOURS_PER_YEAR, type Coverage, type HourWindow } from "./coverage";
+import {
+  calculateCoverage,
+  HOURS_PER_YEAR,
+  isInWindow,
+  type Coverage,
+  type HourWindow,
+} from "./coverage";
 import type { Mast } from "./mast";
 import type { MeasurementStatus } from "./measurement";
 import type { Site } from "./site";
@@ -16,6 +22,9 @@ import { powerAt, type Turbine } from "./turbine";
 
 /** 90 % quantile of the standard normal distribution. */
 const Z_90 = 1.282;
+
+/** From this uncertainty on, P90 = P50 × (1 − 1.282 × U) is 0 or negative (≈ 0.78). */
+export const MAX_UNCERTAINTY = 1 / Z_90;
 
 export type YieldInput = {
   readings: { hour: Date; status: MeasurementStatus; windSpeedMs: number | null }[];
@@ -73,12 +82,10 @@ export function calculateYield({ readings, window, mast, turbine, site }: YieldI
   const coverage = calculateCoverage(readings, window);
   const hubHeightFactor = (turbine.hubHeightM / mast.measurementHeightM) ** site.shearExponent;
 
-  const start = window.start.getTime();
-  const end = window.end.getTime();
   let measuredEnergyKwh = 0;
   for (const { hour, status, windSpeedMs } of readings) {
-    const t = hour.getTime();
-    if (status !== "valid" || windSpeedMs === null || t < start || t > end) continue;
+    // The same hours calculateCoverage counts as valid, so energy and validHours always match.
+    if (status !== "valid" || windSpeedMs === null || !isInWindow(hour, window)) continue;
     measuredEnergyKwh += powerAt(turbine, windSpeedMs * hubHeightFactor); // kW × 1 h
   }
   const measuredEnergyMwh = measuredEnergyKwh / 1000;

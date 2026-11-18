@@ -1,4 +1,4 @@
-import { and, asc, between, desc, eq, lte, sql } from "drizzle-orm";
+import { and, asc, between, desc, eq, lte, max, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { HourWindow } from "@/core/coverage";
 import type { Mast } from "@/core/mast";
@@ -93,4 +93,15 @@ export async function measurementsInWindow(
     .where(
       and(eq(measurements.mastId, mastId), between(measurements.hour, window.start, window.end)),
     );
+}
+
+/** When a reading inside the window was last written or corrected, or null if it has none. */
+export async function newestReadingSync(mastId: string, window: HourWindow): Promise<Date | null> {
+  const [row] = await getDb()
+    .select({ syncedAt: max(measurements.syncedAt) })
+    .from(measurements)
+    .where(
+      and(eq(measurements.mastId, mastId), between(measurements.hour, window.start, window.end)),
+    );
+  return row?.syncedAt ?? null;
 }

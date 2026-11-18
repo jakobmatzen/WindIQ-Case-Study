@@ -19,6 +19,12 @@ export function rollingYear(newestHour: Date): HourWindow {
   return { start, end: newestHour, hours: HOURS_PER_YEAR };
 }
 
+/** Whether an hour lies inside the window, both ends included. */
+export function isInWindow(hour: Date, window: HourWindow): boolean {
+  const t = hour.getTime();
+  return t >= window.start.getTime() && t <= window.end.getTime();
+}
+
 export type Coverage = {
   window: HourWindow;
   validHours: number;
@@ -34,11 +40,8 @@ export function calculateCoverage(
 ): Coverage {
   let validHours = 0;
   let rejectedHours = 0;
-  const start = window.start.getTime();
-  const end = window.end.getTime();
   for (const { hour, status } of readings) {
-    const t = hour.getTime();
-    if (t < start || t > end) continue;
+    if (!isInWindow(hour, window)) continue;
     if (status === "valid") validHours++;
     else rejectedHours++;
   }

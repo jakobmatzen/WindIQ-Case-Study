@@ -43,6 +43,7 @@ CREATE TABLE "yield_results" (
 	"window_start" timestamp with time zone NOT NULL,
 	"window_end" timestamp with time zone NOT NULL,
 	"window_hours" integer NOT NULL,
+	"readings_synced_at" timestamp with time zone NOT NULL,
 	"valid_hours" integer NOT NULL,
 	"rejected_hours" integer NOT NULL,
 	"missing_hours" integer NOT NULL,

@@ -1,5 +1,5 @@
 {
-  "id": "6205126f-d328-4a69-8cf0-082ef27da4f1",
+  "id": "38065d06-b764-4804-b331-bcd9ba9c48b3",
   "prevId": "87975f58-251a-4201-8984-d07c05826681",
   "version": "7",
   "dialect": "postgresql",
@@ -466,6 +466,12 @@
         "window_hours": {
           "name": "window_hours",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "readings_synced_at": {
+          "name": "readings_synced_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
         },

@@ -2,7 +2,8 @@ import type { Mast } from "@/core/mast";
 import type { MeasurementInput } from "@/core/measurement";
 import type { Site } from "@/core/site";
 import type { Turbine } from "@/core/turbine";
-import { ShapeReader } from "./response-shape";
+import { MAX_UNCERTAINTY } from "@/core/yield";
+import { ResponseShapeError, ShapeReader } from "./response-shape";
 import type { MeasurementSource, SiteDataSource } from "./types";
 
 /** Adapter for the WindIQ mock API (docs: <baseUrl>/docs). */
@@ -71,10 +72,10 @@ const RETRY_BASE_DELAY_MS = 1_000;
 export function createWindiqSource(config: WindiqConfig): MeasurementSource & SiteDataSource {
   const fetch = config.fetch ?? globalThis.fetch;
   const sleep = config.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
-  let token: string | undefined;
+  // The pending or finished token request, shared so parallel requests fetch one token, not one each.
+  let token: Promise<string> | undefined;
 
-  async function getToken(): Promise<string> {
-    if (token) return token;
+  async function requestToken(): Promise<string> {
     const response = await fetch(new URL("/auth/token", config.baseUrl), {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -82,7 +83,14 @@ export function createWindiqSource(config: WindiqConfig): MeasurementSource & Si
     });
     if (!response.ok) throw new Error(`WindIQ token request failed: HTTP ${response.status}`);
     const body = (await response.json()) as { access_token: string };
-    token = body.access_token;
+    return body.access_token;
+  }
+
+  function getToken(): Promise<string> {
+    token ??= requestToken().catch((error: unknown) => {
+      token = undefined; // a failed request must not block the next attempt
+      throw error;
+    });
     return token;
   }
 
@@ -140,17 +148,25 @@ function toMast(body: unknown): Mast {
 
 function toTurbine(body: unknown): Turbine {
   const t = ShapeReader.of("/v1/turbine", body);
+  const cutInWindSpeedMs = t.nonNegative("cut_in_wind_speed_ms");
+  const cutOutWindSpeedMs = t.positive("cut_out_wind_speed_ms");
+  if (cutInWindSpeedMs >= cutOutWindSpeedMs) {
+    throw new ResponseShapeError(
+      "/v1/turbine",
+      "cut_in_wind_speed_ms must be below cut_out_wind_speed_ms",
+    );
+  }
   return {
     id: t.string("id"),
     name: t.string("name"),
     ratedPowerKw: t.positive("rated_power_kw"),
     hubHeightM: t.positive("hub_height_m"),
     rotorDiameterM: t.positive("rotor_diameter_m"),
-    cutInWindSpeedMs: t.number("cut_in_wind_speed_ms"),
-    cutOutWindSpeedMs: t.number("cut_out_wind_speed_ms"),
+    cutInWindSpeedMs,
+    cutOutWindSpeedMs,
     powerCurve: t.nonEmptyList("power_curve").map((p) => ({
-      windSpeedMs: p.number("wind_speed_ms"),
-      powerKw: p.number("power_kw"),
+      windSpeedMs: p.nonNegative("wind_speed_ms"),
+      powerKw: p.nonNegative("power_kw"),
     })),
     version: t.integer("version"),
     updatedAt: t.string("updated_at"),
@@ -160,6 +176,13 @@ function toTurbine(body: unknown): Turbine {
 function toSite(body: unknown): Site {
   const s = ShapeReader.of("/v1/site", body);
   const losses = s.object("losses");
+  const uncertainty = s.share("uncertainty");
+  if (uncertainty >= MAX_UNCERTAINTY) {
+    throw new ResponseShapeError(
+      "/v1/site",
+      `uncertainty must be below ${MAX_UNCERTAINTY.toFixed(2)}, or P90 turns negative`,
+    );
+  }
   return {
     id: s.string("id"),
     name: s.string("name"),
@@ -170,7 +193,7 @@ function toSite(body: unknown): Site {
       electrical: losses.share("electrical"),
       wake: losses.share("wake"),
     },
-    uncertainty: s.share("uncertainty"),
+    uncertainty,
     version: s.integer("version"),
     updatedAt: s.string("updated_at"),
   };

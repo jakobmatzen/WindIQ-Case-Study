@@ -27,6 +27,16 @@ describe("powerAt", () => {
     expect(powerAt(referenceTurbine, 30)).toBe(0);
   });
 
+  test("is 0 between cut-in and a curve that starts above it (no support point there)", () => {
+    const startsAt3 = {
+      ...referenceTurbine,
+      cutInWindSpeedMs: 2.5,
+      powerCurve: referenceTurbine.powerCurve.filter((p) => p.windSpeedMs >= 3),
+    };
+    expect(powerAt(startsAt3, 2.8)).toBe(0);
+    expect(powerAt(startsAt3, 3)).toBe(55);
+  });
+
   test("works on a curve the source sent unsorted", () => {
     const shuffled = {
       ...referenceTurbine,

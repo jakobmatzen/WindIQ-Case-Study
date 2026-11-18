@@ -108,6 +108,28 @@ describe("WindIQ source: mast", () => {
   });
 });
 
+describe("WindIQ source: token", () => {
+  test("shares one token between requests started at the same time", async () => {
+    const api = fakeApi({
+      pages: { "": { data: [], next_cursor: null } },
+      mast: {
+        id: "WIQ-MM-01",
+        name: "Messmast Spreewald",
+        latitude: 51.8732,
+        longitude: 14.0412,
+        measurement_height_m: 100,
+        operator: "WindIQ",
+        commissioned_at: "2023-04-01",
+      },
+    });
+    const windiq = source(api);
+
+    await Promise.all([windiq.fetchMast(), windiq.fetchMast(), windiq.fetchMast()]);
+
+    expect(api.requests.filter((r) => r.url.pathname === "/auth/token")).toHaveLength(1);
+  });
+});
+
 describe("WindIQ source: turbine and site", () => {
   test("reads the turbine with its power curve and version", async () => {
     const api = fakeApi({
@@ -334,6 +356,36 @@ describe("WindIQ source: responses with an unexpected shape", () => {
 
     await expect(source(api).fetchMast()).rejects.toThrow(
       "WindIQ /v1/mast: measurement_height_m must be greater than 0",
+    );
+  });
+
+  test("rejects an uncertainty so high that P90 would be negative", async () => {
+    const api = fakeApi({ pages: {}, site: broken(site, { uncertainty: 0.8 }) });
+
+    await expect(source(api).fetchSite()).rejects.toThrow(
+      "WindIQ /v1/site: uncertainty must be below 0.78, or P90 turns negative",
+    );
+  });
+
+  test("rejects a turbine whose cut-in is above its cut-out", async () => {
+    const api = fakeApi({
+      pages: {},
+      turbine: broken(turbine, { cut_in_wind_speed_ms: 25, cut_out_wind_speed_ms: 3 }),
+    });
+
+    await expect(source(api).fetchTurbine()).rejects.toThrow(
+      "WindIQ /v1/turbine: cut_in_wind_speed_ms must be below cut_out_wind_speed_ms",
+    );
+  });
+
+  test("rejects a power curve with negative power", async () => {
+    const api = fakeApi({
+      pages: {},
+      turbine: broken(turbine, { power_curve: [{ wind_speed_ms: 3, power_kw: -50 }] }),
+    });
+
+    await expect(source(api).fetchTurbine()).rejects.toThrow(
+      "WindIQ /v1/turbine: power_curve[0].power_kw must be 0 or more",
     );
   });
 

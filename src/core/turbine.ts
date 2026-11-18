@@ -36,8 +36,8 @@ function sortedCurve(curve: PowerCurvePoint[]): PowerCurvePoint[] {
 
 /**
  * Electrical power at a hub-height wind speed, in kW: linear between the support points of the
- * curve, 0 below cut-in and above cut-out (working assumption, see the guide). Outside the curve's
- * range the nearest support point holds.
+ * curve, 0 below cut-in and above cut-out (working assumption, see the guide). Below the first
+ * support point it is 0 (no data), above the last one that point's power holds up to cut-out.
  */
 export function powerAt(turbine: Turbine, windSpeedMs: number): number {
   if (windSpeedMs < turbine.cutInWindSpeedMs || windSpeedMs > turbine.cutOutWindSpeedMs) return 0;
@@ -45,7 +45,8 @@ export function powerAt(turbine: Turbine, windSpeedMs: number): number {
   const first = curve[0];
   const last = curve.at(-1);
   if (!first || !last) return 0;
-  if (windSpeedMs <= first.windSpeedMs) return first.powerKw;
+  if (windSpeedMs < first.windSpeedMs) return 0;
+  if (windSpeedMs === first.windSpeedMs) return first.powerKw;
   if (windSpeedMs >= last.windSpeedMs) return last.powerKw;
 
   const upper = curve.findIndex((p) => p.windSpeedMs >= windSpeedMs);

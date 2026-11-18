@@ -148,6 +148,11 @@ export const yieldResults = pgTable(
     windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
     windowEnd: timestamp("window_end", { withTimezone: true }).notNull(),
     windowHours: integer("window_hours").notNull(),
+    /**
+     * Newest `synced_at` of the readings in the window when this result was calculated.
+     * A later sync that writes or corrects a reading moves it, so the worker knows to recalculate.
+     */
+    readingsSyncedAt: timestamp("readings_synced_at", { withTimezone: true }).notNull(),
     validHours: integer("valid_hours").notNull(),
     rejectedHours: integer("rejected_hours").notNull(),
     missingHours: integer("missing_hours").notNull(),
