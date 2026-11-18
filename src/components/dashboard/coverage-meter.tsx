@@ -7,10 +7,11 @@ export const QUALITY_LABEL: Record<YieldQuality, string> = {
   not_meaningful: "nicht aussagekräftig",
 };
 
+/** Same fills as the monthly coverage strip, so one status always has one color. */
 const FILL: Record<YieldQuality, string> = {
-  ok: "bg-success-on-navy",
-  uncertain: "bg-warning-on-navy",
-  not_meaningful: "bg-danger-on-navy",
+  ok: "bg-success",
+  uncertain: "bg-warning",
+  not_meaningful: "bg-destructive",
 };
 
 const THRESHOLDS = [COVERAGE_THRESHOLDS.meaningful, COVERAGE_THRESHOLDS.ok];

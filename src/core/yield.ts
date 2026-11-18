@@ -37,7 +37,7 @@ export type YieldInput = {
 
 /**
  * How far the result can be trusted, from data coverage (thresholds: JAK-12 and the guide's
- * "Offene Fragen an WindIQ"). The result is shown in every case, with a warning below `ok`.
+ * "Annahmen"). The result is shown in every case, with a warning below `ok`.
  */
 export const YIELD_QUALITIES = ["ok", "uncertain", "not_meaningful"] as const;
 export type YieldQuality = (typeof YIELD_QUALITIES)[number];

@@ -63,8 +63,8 @@ Title is the version, body is bullets, footer is the PR number with `#`. Each PR
 ## Documentation
 
 - **`CHANGELOG.md`**: newest first, `## vX.Y.Z-beta.N – YYYY-MM-DD`, plain short bullets.
-- **The guide** is `README.md` (German, for WindIQ and the user's interview). The Linear project description (P-JAK-1) mirrors it without the "Lokal starten" section. `/ship` and `/release` update both together. Keep the guide high-level: structure, workflow, decisions and why. Implementation detail belongs in code and `docs/`.
-- **Open questions**: when a question for WindIQ comes up, pick a working assumption, keep going, and record both in the guide's "Offene Fragen an WindIQ" table.
+- **The guide** is `README.md` (German, for Vidia Equity and the user's interview). The Linear project description (P-JAK-1) mirrors it without the "Lokal starten" section. `/ship` and `/release` update both together. Keep the guide high-level: structure, workflow, decisions and why. Implementation detail belongs in code and `docs/`.
+- **Assumptions**: when the task or the API docs leave a question open, pick a working assumption, keep going, and record both in the guide's "Annahmen" table. Questions actually sent to Vidia Equity (the company behind the case study; WindIQ is the project) are marked there.
 
 ## Language
 

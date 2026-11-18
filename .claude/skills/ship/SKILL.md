@@ -50,7 +50,7 @@ Write the new version to `package.json`.
 ## 5. Document
 
 1. `CHANGELOG.md`: new section at the top, `## v<version> – <today YYYY-MM-DD>`, two to five short bullets about what this ticket delivered.
-2. Guide (`README.md` and the Linear project description of P-JAK-1, kept identical apart from "Lokal starten"): add what this ticket changed that matters for explaining the project: a decision and why, a new building block, a new open question with its working assumption. Skip if nothing qualifies. German, short.
+2. Guide (`README.md` and the Linear project description of P-JAK-1, kept identical apart from "Lokal starten"): add what this ticket changed that matters for explaining the project: a decision and why, a new building block, a new assumption (open question and working answer). Skip if nothing qualifies. German, short.
 3. **UI changed** (anything under `src/app` or `src/components` that renders): screenshot every affected screen in the running app, light mode, desktop width plus one phone width. Use Playwright (`bunx playwright screenshot`); if no browser is installed yet, ask before installing Chromium. Save them as `docs/screenshots/jak-<n>/<screen>.png`.
 4. Commit with `commit`: title `Prepare v<version>`.
 

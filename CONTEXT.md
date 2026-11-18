@@ -4,7 +4,7 @@ Diese Datei beschreibt, worum es in diesem Projekt geht, welche Rahmenbedingunge
 
 ## Auftrag
 
-Case Study für die Position **Fullstack Engineer** bei **WindIQ**.
+Case Study für die Position **Fullstack Engineer** bei **Vidia Equity**, Projekt **WindIQ**.
 
 WindIQ ist eine digitale Plattform, auf der mehrere Gutachterbüros für Windenergie zusammenarbeiten. Projektentwicklungsfirmen verwalten dort ihre Windprojekte, prüfen Standorte vor und beauftragen Gutachten.
 
@@ -20,9 +20,9 @@ Eine Kernfrage auf der Plattform lautet: **Wie viel Strom erzeugt eine Windenerg
 
 1. **Anwendung:** holt laufend Messwerte aus einer API, berechnet Jahresertrag, P50 und P90 und visualisiert das Ergebnis.
 2. **Deployment:** öffentlich erreichbar, automatisiert getestet und ausgeliefert.
-3. **Betrieb:** läuft stabil, bis sich WindIQ meldet. Zu zeigen ist, wie der Betrieb überwacht wird.
+3. **Betrieb:** läuft stabil, bis sich Vidia Equity meldet. Zu zeigen ist, wie der Betrieb überwacht wird.
 
-> Laut Aufgabe geht es WindIQ **vor allem darum, dass die Anwendung zuverlässig läuft**. Robustheit und Betrieb sind wichtiger als viele Features.
+> Laut Aufgabe geht es Vidia Equity **vor allem darum, dass die Anwendung zuverlässig läuft**. Robustheit und Betrieb sind wichtiger als viele Features.
 
 Wie das umgesetzt wird und was darüber hinaus gebaut wird, ist freigestellt.
 
@@ -35,7 +35,7 @@ Wie das umgesetzt wird und was darüber hinaus gebaut wird, ist freigestellt.
 | Technologie und Hoster | frei wählbar, KI-Tools erlaubt |
 | Live-Betrieb | etwa eine Woche |
 | Abgabe | **Montag, 23.11.2026, EOD** |
-| Fragen | per E-Mail an WindIQ möglich |
+| Fragen | per E-Mail an Vidia Equity möglich |
 
 **Abgabe umfasst:**
 - URL der Anwendung
@@ -119,7 +119,7 @@ Plausibilität mit den Beispielwerten der Doku: Mast 100 m, Nabe 140 m, α = 0,2
 
 ### Annahmen
 
-Offene Fragen an WindIQ und die jeweils geltende Arbeitsannahme stehen im README (Abschnitt „Offene Fragen an WindIQ“). Vor jeder Arbeit an Validierung oder Berechnung dort nachlesen und neue Fragen dort ergänzen.
+Wo Aufgabe und API-Doku offen sind, gilt eine Arbeitsannahme. Alle Annahmen stehen im README (Abschnitt „Annahmen“), Punkte mit Rückfrage an Vidia Equity sind dort markiert. Vor jeder Arbeit an Validierung oder Berechnung dort nachlesen und neue Annahmen dort ergänzen.
 
 ## Glossar
 
