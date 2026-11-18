@@ -245,6 +245,25 @@ describe("WindIQ source: measurements", () => {
     );
   });
 
+  test("asks for corrections updated since a given time, on every page", async () => {
+    const api = fakeApi({
+      pages: {
+        "": { data: [apiReading("2026-01-01T00:00:00Z")], next_cursor: "b2Zmc2V0OjE" },
+        b2Zmc2V0OjE: { data: [apiReading("2026-01-01T01:00:00Z")], next_cursor: null },
+      },
+    });
+
+    await collect(
+      source(api).fetchMeasurements({ updatedSince: new Date("2026-11-18T09:30:00Z") }),
+    );
+
+    expect(api.measurementRequests().map((r) => r.url.searchParams.get("updated_since"))).toEqual([
+      "2026-11-18T09:30:00.000Z",
+      "2026-11-18T09:30:00.000Z",
+    ]);
+    expect(api.measurementRequests()[0]?.url.searchParams.has("since")).toBe(false);
+  });
+
   test("retries a page that fails with 503, using the same cursor", async () => {
     // Seen in the real API: one 503 in the middle of paging through the year.
     const api = fakeApi({

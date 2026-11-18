@@ -1,10 +1,10 @@
-import { and, asc, between, desc, eq, lte, max, sql } from "drizzle-orm";
+import { and, asc, between, desc, eq, inArray, lte, max, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { HourWindow } from "@/core/coverage";
 import type { Mast } from "@/core/mast";
 import type { CheckedMeasurement, MeasurementStatus } from "@/core/measurement";
 import { getDb } from "./client";
-import { masts, measurements } from "./schema";
+import { masts, measurements, measurementSyncState } from "./schema";
 
 /** Repository for masts and their hourly readings. */
 
@@ -104,4 +104,31 @@ export async function newestReadingSync(mastId: string, window: HourWindow): Pro
       and(eq(measurements.mastId, mastId), between(measurements.hour, window.start, window.end)),
     );
   return row?.syncedAt ?? null;
+}
+
+/** Stored version per hour (key: ms since epoch), for the given hours that are stored at all. */
+export async function storedVersions(mastId: string, hours: Date[]): Promise<Map<number, number>> {
+  if (hours.length === 0) return new Map();
+  const rows = await getDb()
+    .select({ hour: measurements.hour, version: measurements.version })
+    .from(measurements)
+    .where(and(eq(measurements.mastId, mastId), inArray(measurements.hour, hours)));
+  return new Map(rows.map((r) => [r.hour.getTime(), r.version]));
+}
+
+/** Where the next correction fetch of a mast starts, or null before the first one. */
+export async function correctionCursor(mastId: string): Promise<Date | null> {
+  const [row] = await getDb()
+    .select({ at: measurementSyncState.correctionsSince })
+    .from(measurementSyncState)
+    .where(eq(measurementSyncState.mastId, mastId));
+  return row?.at ?? null;
+}
+
+export async function saveCorrectionCursor(mastId: string, at: Date): Promise<void> {
+  const values = { mastId, correctionsSince: at, updatedAt: new Date() };
+  await getDb()
+    .insert(measurementSyncState)
+    .values(values)
+    .onConflictDoUpdate({ target: measurementSyncState.mastId, set: values });
 }

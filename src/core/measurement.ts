@@ -101,3 +101,43 @@ export function newestPerHour(readings: CheckedMeasurement[]): CheckedMeasuremen
   }
   return [...byHour.values()];
 }
+
+/**
+ * Splits readings against the versions already stored (key: hour in ms since epoch).
+ * A reading wins only with a higher version than the stored one; same or older versions are dropped.
+ * `corrected` are stored hours that get a newer version, `added` are hours not stored yet.
+ */
+export function compareWithStored(
+  readings: CheckedMeasurement[],
+  storedVersions: ReadonlyMap<number, number>,
+): { added: CheckedMeasurement[]; corrected: CheckedMeasurement[] } {
+  const added: CheckedMeasurement[] = [];
+  const corrected: CheckedMeasurement[] = [];
+  for (const reading of readings) {
+    const stored = storedVersions.get(reading.hour.getTime());
+    if (stored === undefined) added.push(reading);
+    else if (reading.version > stored) corrected.push(reading);
+  }
+  return { added, corrected };
+}
+
+/**
+ * Where the next correction fetch (`updated_since`) starts after this page: the newest
+ * `updatedAt` seen so far. Never moves back, and never past `now`, so one bad timestamp
+ * from the source cannot skip corrections that come later. Null while nothing was seen.
+ */
+export function nextCorrectionCursor(
+  current: Date | null,
+  page: CheckedMeasurement[],
+  now: Date,
+): Date | null {
+  let newest = current?.getTime() ?? -Infinity;
+  for (const { updatedAt } of page) {
+    const t = updatedAt.getTime();
+    if (t > newest) newest = t; // NaN compares false, so invalid dates are ignored
+  }
+  if (newest === -Infinity) return null;
+  // The cap is now, unless the cursor already is later: moving back would refetch for nothing.
+  const cap = Math.max(now.getTime(), current?.getTime() ?? -Infinity);
+  return new Date(Math.min(newest, cap));
+}

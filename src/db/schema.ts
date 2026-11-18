@@ -36,6 +36,8 @@ export const syncRuns = pgTable("sync_runs", {
   startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
   itemsProcessed: integer("items_processed").notNull().default(0),
+  /** Readings of this run that replaced an older version of a stored hour. */
+  corrections: integer("corrections").notNull().default(0),
   error: text("error"),
 }).enableRLS();
 
@@ -82,6 +84,19 @@ export const measurements = pgTable(
   },
   (t) => [primaryKey({ columns: [t.mastId, t.hour] })],
 ).enableRLS();
+
+/**
+ * Per mast, where the next correction fetch (`updated_since`) starts: the newest `updated_at` seen
+ * at the source. Its own state, not derived from the readings, because new hours fetched by
+ * `since` carry recent `updated_at`s too and would push it past corrections not fetched yet.
+ */
+export const measurementSyncState = pgTable("measurement_sync_state", {
+  mastId: text("mast_id")
+    .primaryKey()
+    .references(() => masts.id),
+  correctionsSince: timestamp("corrections_since", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}).enableRLS();
 
 /**
  * Every turbine version the source has delivered, stored once and never changed,

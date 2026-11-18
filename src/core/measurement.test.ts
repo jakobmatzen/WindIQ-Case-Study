@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import fixture from "./__fixtures__/windiq-measurements.json";
-import { checkMeasurement, newestPerHour, type MeasurementInput } from "./measurement";
+import {
+  checkMeasurement,
+  compareWithStored,
+  newestPerHour,
+  nextCorrectionCursor,
+  type MeasurementInput,
+} from "./measurement";
 
 /** A reading as the source adapter hands it over; overrides pick the case under test. */
 function reading(overrides: Partial<MeasurementInput> = {}): MeasurementInput {
@@ -168,5 +174,72 @@ describe("newestPerHour", () => {
       checkMeasurement(reading({ timestamp: "2026-03-02T20:00:00+00:00" })),
     ];
     expect(newestPerHour(readings)).toHaveLength(1);
+  });
+});
+
+describe("compareWithStored", () => {
+  const hour = "2026-03-02T20:00:00Z";
+  const stored = (version: number) => new Map([[new Date(hour).getTime(), version]]);
+
+  test("a newer version replaces the stored one and counts as a correction", () => {
+    const v2 = checkMeasurement(reading({ timestamp: hour, windSpeed: 6.4, version: 2 }));
+
+    const result = compareWithStored([v2], stored(1));
+
+    expect(result.corrected).toEqual([v2]);
+    expect(result.added).toEqual([]);
+  });
+
+  test("an older or equal version does not replace the stored one", () => {
+    const v1 = checkMeasurement(reading({ timestamp: hour, version: 1 }));
+    const v2 = checkMeasurement(reading({ timestamp: hour, version: 2 }));
+
+    expect(compareWithStored([v1], stored(2))).toEqual({ added: [], corrected: [] });
+    expect(compareWithStored([v2], stored(2))).toEqual({ added: [], corrected: [] });
+  });
+
+  test("an hour not stored yet is added, not counted as a correction", () => {
+    const fresh = checkMeasurement(reading({ timestamp: "2026-03-02T21:00:00Z" }));
+
+    expect(compareWithStored([fresh], stored(1))).toEqual({ added: [fresh], corrected: [] });
+  });
+});
+
+describe("nextCorrectionCursor", () => {
+  const now = new Date("2026-11-18T12:00:00Z");
+  const updated = (updatedAt: string) => checkMeasurement(reading({ updatedAt }));
+
+  test("moves to the newest updated_at of the page", () => {
+    const page = [updated("2026-11-18T10:00:00Z"), updated("2026-11-18T11:30:00Z")];
+
+    expect(nextCorrectionCursor(new Date("2026-11-18T09:00:00Z"), page, now)).toEqual(
+      new Date("2026-11-18T11:30:00Z"),
+    );
+  });
+
+  test("never moves back", () => {
+    const current = new Date("2026-11-18T11:00:00Z");
+
+    expect(nextCorrectionCursor(current, [updated("2026-11-17T08:00:00Z")], now)).toEqual(current);
+    expect(nextCorrectionCursor(current, [], now)).toEqual(current);
+  });
+
+  test("never moves past now, so one bad updated_at cannot skip later corrections", () => {
+    const page = [updated("2030-01-01T00:00:00Z")];
+
+    expect(nextCorrectionCursor(new Date("2026-11-18T09:00:00Z"), page, now)).toEqual(now);
+  });
+
+  test("ignores an updated_at that is not a date", () => {
+    const current = new Date("2026-11-18T09:00:00Z");
+
+    expect(nextCorrectionCursor(current, [updated("yesterday")], now)).toEqual(current);
+  });
+
+  test("starts from the page when there is no cursor yet, or stays empty", () => {
+    expect(nextCorrectionCursor(null, [updated("2026-11-18T10:00:00Z")], now)).toEqual(
+      new Date("2026-11-18T10:00:00Z"),
+    );
+    expect(nextCorrectionCursor(null, [], now)).toBeNull();
   });
 });

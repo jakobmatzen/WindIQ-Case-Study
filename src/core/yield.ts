@@ -116,3 +116,32 @@ export function calculateYield({ readings, window, mast, turbine, site }: YieldI
     p90Mwh: netAepMwh * (1 - Z_90 * site.uncertainty),
   };
 }
+
+/** Everything a stored result depends on besides the formulas: equal fingerprints, equal result. */
+export type YieldFingerprint = YieldBasis & {
+  /** Newest hour of the window. */
+  windowEnd: Date;
+  /** Newest write or correction of a reading inside the window. */
+  readingsSyncedAt: Date;
+};
+
+/**
+ * Whether a new calculation would rest on the same inputs as the previous result. Only if not
+ * is a new result stored, so the history shows real changes instead of identical rows.
+ */
+export function sameFingerprint(
+  previous: YieldFingerprint | null,
+  current: YieldFingerprint,
+): boolean {
+  return (
+    previous !== null &&
+    previous.mastId === current.mastId &&
+    previous.measurementHeightM === current.measurementHeightM &&
+    previous.turbineId === current.turbineId &&
+    previous.turbineVersion === current.turbineVersion &&
+    previous.siteId === current.siteId &&
+    previous.siteVersion === current.siteVersion &&
+    previous.windowEnd.getTime() === current.windowEnd.getTime() &&
+    previous.readingsSyncedAt.getTime() === current.readingsSyncedAt.getTime()
+  );
+}
