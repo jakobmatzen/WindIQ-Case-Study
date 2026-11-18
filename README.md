@@ -59,7 +59,7 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 17.11. | Feste Schichten, Grenzen per ESLint geprüft | Die Kernlogik ist testbar und Schritt für Schritt nachvollziehbar. Neue Datenquellen brauchen keinen Umbau. |
 | 17.11. | Kernlogik test-first, gegen echte API-Daten und die Referenzwerte der Doku | Wenn die Zahlen falsch sind, ist alles andere wertlos |
 | 17.11. | Automatischer Code-Review vor jedem PR | eine zweite Prüfung vor meinem eigenen Review |
-| 17.11. | Offene Fragen blockieren nicht | Mit einer dokumentierten Annahme weiterarbeiten (siehe 7.). Nur was den Ertrag spürbar verändert, wird bei Vidia Equity nachgefragt. |
+| 17.11. | Offene Punkte blockieren nicht | Mit einer dokumentierten Annahme weiterarbeiten (siehe 7. Annahmen). Rückfragen an Vidia Equity gebündelt in einer E-Mail. |
 | 17.11. | PRs merged Claude erst auf meine Freigabe | Titel und Nachricht stimmen immer, nichts muss von Hand kopiert werden. Die Kontrolle bleibt bei mir. |
 | 17.11. | Unbrauchbare Messwerte werden mit Grund gespeichert, nicht weggeworfen | Datenabdeckung und Ablehngründe bleiben sichtbar, der Rohwert bleibt für Gutachtende nachvollziehbar |
 | 17.11. | Pro Stunde ein Wert in UTC, die neueste Version gewinnt | Die API liefert Stunden in gemischten Zeitzonen und teils doppelt (siehe 5.) |
@@ -107,7 +107,7 @@ Ein vollständiger Abruf (17.11., 8.707 Stundenwerte über ein Jahr) zeigt, womi
 
 ## 7. Annahmen
 
-Wo Aufgabe und API-Doku offen sind, gilt die folgende Annahme. Die mit *nachgefragt* markierten Punkte habe ich am 18.11. per E-Mail bei Vidia Equity angefragt. Sie verändern den Ertrag am stärksten.
+Wo Aufgabe und API-Doku offen sind, gilt die folgende Annahme. Die mit *nachgefragt* markierten Punkte betreffen den Umgang mit Lücken und unbrauchbaren Werten. Ich habe sie am 18.11. per E-Mail bei Vidia Equity angefragt.
 
 | Punkt | Annahme |
 | --- | --- |

@@ -45,7 +45,8 @@ export type YieldQuality = (typeof YIELD_QUALITIES)[number];
 /** Lowest data coverage (share of hours) for each quality; below `meaningful` it is not. */
 export const COVERAGE_THRESHOLDS = { ok: 0.9, meaningful: 0.7 } as const;
 
-function qualityOf(coverageRatio: number): YieldQuality {
+/** How far a share of valid hours can be trusted; used for the year and for each month. */
+export function qualityOf(coverageRatio: number): YieldQuality {
   if (coverageRatio >= COVERAGE_THRESHOLDS.ok) return "ok";
   if (coverageRatio >= COVERAGE_THRESHOLDS.meaningful) return "uncertain";
   return "not_meaningful";

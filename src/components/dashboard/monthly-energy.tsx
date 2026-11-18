@@ -1,4 +1,4 @@
-import { COVERAGE_THRESHOLDS, isPartialMonth, type MonthYield } from "@/core/yield";
+import { isPartialMonth, qualityOf, type MonthYield } from "@/core/yield";
 import {
   formatInt,
   formatMonth,
@@ -8,16 +8,13 @@ import {
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ChartTip } from "./chart-tip";
+import { QUALITY_FILL } from "./coverage-meter";
 import { Card } from "./label";
 
 const coverageOf = (m: MonthYield) => (m.hours === 0 ? 0 : m.validHours / m.hours);
 
-/** Same thresholds as the yield quality, so a month reads like the whole year would. */
-function coverageColor(ratio: number): string {
-  if (ratio >= COVERAGE_THRESHOLDS.ok) return "bg-success";
-  if (ratio >= COVERAGE_THRESHOLDS.meaningful) return "bg-warning";
-  return "bg-destructive";
-}
+/** Same thresholds and colors as the yield quality, so a month reads like the whole year would. */
+const coverageColor = (ratio: number) => QUALITY_FILL[qualityOf(ratio)];
 
 /**
  * Gross energy per calendar month, each scaled up to its hours in the window, so the bars add up
