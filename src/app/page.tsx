@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import type { YieldQuality } from "@/core/yield";
+import { COVERAGE_THRESHOLDS, type YieldQuality } from "@/core/yield";
 import { getLatestYield } from "@/server/yield";
 
 // Interim page until the dashboard (JAK-15): the latest yield result, without design.
@@ -17,11 +17,12 @@ const dateTime = new Intl.DateTimeFormat("de-DE", {
   timeZone: "Europe/Berlin",
 });
 
+const wholePercent = new Intl.NumberFormat("de-DE", { style: "percent" });
+
 const QUALITY_WARNING: Record<YieldQuality, string | null> = {
   ok: null,
-  uncertain: "Unsicher: weniger als 90 % der Stunden haben einen gültigen Messwert.",
-  not_meaningful:
-    "Nicht aussagekräftig: weniger als 70 % der Stunden haben einen gültigen Messwert.",
+  uncertain: `Unsicher: weniger als ${wholePercent.format(COVERAGE_THRESHOLDS.ok)} der Stunden haben einen gültigen Messwert.`,
+  not_meaningful: `Nicht aussagekräftig: weniger als ${wholePercent.format(COVERAGE_THRESHOLDS.meaningful)} der Stunden haben einen gültigen Messwert.`,
 };
 
 async function LatestYield() {

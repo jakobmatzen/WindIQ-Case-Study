@@ -21,6 +21,19 @@ export type Turbine = {
   updatedAt: string;
 };
 
+// One sorted copy per curve: a yield calculation asks for the power 8,760 times.
+// Curves are never changed in place (a new turbine version is a new object), so the copy stays valid.
+const sortedCurves = new WeakMap<PowerCurvePoint[], PowerCurvePoint[]>();
+
+function sortedCurve(curve: PowerCurvePoint[]): PowerCurvePoint[] {
+  let sorted = sortedCurves.get(curve);
+  if (!sorted) {
+    sorted = [...curve].sort((a, b) => a.windSpeedMs - b.windSpeedMs);
+    sortedCurves.set(curve, sorted);
+  }
+  return sorted;
+}
+
 /**
  * Electrical power at a hub-height wind speed, in kW: linear between the support points of the
  * curve, 0 below cut-in and above cut-out (working assumption, see the guide). Outside the curve's
@@ -28,7 +41,7 @@ export type Turbine = {
  */
 export function powerAt(turbine: Turbine, windSpeedMs: number): number {
   if (windSpeedMs < turbine.cutInWindSpeedMs || windSpeedMs > turbine.cutOutWindSpeedMs) return 0;
-  const curve = [...turbine.powerCurve].sort((a, b) => a.windSpeedMs - b.windSpeedMs);
+  const curve = sortedCurve(turbine.powerCurve);
   const first = curve[0];
   const last = curve.at(-1);
   if (!first || !last) return 0;

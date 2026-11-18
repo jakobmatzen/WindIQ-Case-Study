@@ -126,7 +126,7 @@ async function recalculateYield(
   const window = rollingYear(newestHour);
   const readings = await measurementsInWindow(mast.id, window);
   const result = calculateYield({ readings, window, mast, turbine, site });
-  await insertYieldResult(result, mast.measurementHeightM);
+  await insertYieldResult(result);
   log("info", "yield calculated", {
     p50Mwh: Math.round(result.p50Mwh),
     p90Mwh: Math.round(result.p90Mwh),

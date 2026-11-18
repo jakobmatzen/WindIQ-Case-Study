@@ -120,6 +120,7 @@ describe("calculateYield", () => {
     expect(result.coverage.window).toEqual(year);
     expect(result.basis).toEqual({
       mastId: "WIQ-MM-01",
+      measurementHeightM: 100,
       turbineId: "WIQ-T36",
       turbineVersion: 47,
       siteId: "WIQ-SITE-01",

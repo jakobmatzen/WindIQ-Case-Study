@@ -47,14 +47,11 @@ export async function saveSiteVersion(site: Site): Promise<void> {
     .onConflictDoNothing();
 }
 
-export async function insertYieldResult(
-  result: YieldResult,
-  measurementHeightM: number,
-): Promise<void> {
+export async function insertYieldResult(result: YieldResult): Promise<void> {
   const { basis, coverage } = result;
   await getDb().insert(yieldResults).values({
     mastId: basis.mastId,
-    measurementHeightM,
+    measurementHeightM: basis.measurementHeightM,
     turbineId: basis.turbineId,
     turbineVersion: basis.turbineVersion,
     siteId: basis.siteId,

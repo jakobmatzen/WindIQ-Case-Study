@@ -26,24 +26,26 @@ export type YieldInput = {
 };
 
 /**
- * How far the result can be trusted, from data coverage (thresholds from the grilling on 17.11.).
- * The result is shown in every case, with a warning below `ok`.
+ * How far the result can be trusted, from data coverage (thresholds: JAK-12 and the guide's
+ * "Offene Fragen an WindIQ"). The result is shown in every case, with a warning below `ok`.
  */
 export const YIELD_QUALITIES = ["ok", "uncertain", "not_meaningful"] as const;
 export type YieldQuality = (typeof YIELD_QUALITIES)[number];
 
-const MIN_COVERAGE_OK = 0.9;
-const MIN_COVERAGE_MEANINGFUL = 0.7;
+/** Lowest data coverage (share of hours) for each quality; below `meaningful` it is not. */
+export const COVERAGE_THRESHOLDS = { ok: 0.9, meaningful: 0.7 } as const;
 
 function qualityOf(coverageRatio: number): YieldQuality {
-  if (coverageRatio >= MIN_COVERAGE_OK) return "ok";
-  if (coverageRatio >= MIN_COVERAGE_MEANINGFUL) return "uncertain";
+  if (coverageRatio >= COVERAGE_THRESHOLDS.ok) return "ok";
+  if (coverageRatio >= COVERAGE_THRESHOLDS.meaningful) return "uncertain";
   return "not_meaningful";
 }
 
 /** Which master data a result was calculated with, so it stays traceable. */
 export type YieldBasis = {
   mastId: string;
+  /** h_Mess used; the mast itself has no version at the source. */
+  measurementHeightM: number;
   turbineId: string;
   turbineVersion: number;
   siteId: string;
@@ -90,6 +92,7 @@ export function calculateYield({ readings, window, mast, turbine, site }: YieldI
   return {
     basis: {
       mastId: mast.id,
+      measurementHeightM: mast.measurementHeightM,
       turbineId: turbine.id,
       turbineVersion: turbine.version,
       siteId: site.id,

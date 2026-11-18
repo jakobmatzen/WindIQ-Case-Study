@@ -2,6 +2,7 @@ import type { Mast } from "@/core/mast";
 import type { MeasurementInput } from "@/core/measurement";
 import type { Site } from "@/core/site";
 import type { Turbine } from "@/core/turbine";
+import { ShapeReader } from "./response-shape";
 import type { MeasurementSource, SiteDataSource } from "./types";
 
 /** Adapter for the WindIQ mock API (docs: <baseUrl>/docs). */
@@ -85,14 +86,14 @@ export function createWindiqSource(config: WindiqConfig): MeasurementSource & Si
     return token;
   }
 
-  async function get<T>(path: string, params: Record<string, string>): Promise<T> {
+  async function get(path: string, params: Record<string, string>): Promise<unknown> {
     const url = new URL(path, config.baseUrl);
     for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
     for (let attempt = 1; ; attempt++) {
       const response = await fetch(url, {
         headers: { authorization: `Bearer ${await getToken()}` },
       });
-      if (response.ok) return (await response.json()) as T;
+      if (response.ok) return response.json();
       if (response.status < 500 || attempt === MAX_ATTEMPTS) {
         throw new Error(`WindIQ GET ${path} failed: HTTP ${response.status}`);
       }
@@ -101,9 +102,9 @@ export function createWindiqSource(config: WindiqConfig): MeasurementSource & Si
   }
 
   return {
-    fetchMast: async () => toMast(await get<ApiMast>("/v1/mast", {})),
-    fetchTurbine: async () => toTurbine(await get<ApiTurbine>("/v1/turbine", {})),
-    fetchSite: async () => toSite(await get<ApiSite>("/v1/site", {})),
+    fetchMast: async () => toMast(await get("/v1/mast", {})),
+    fetchTurbine: async () => toTurbine(await get("/v1/turbine", {})),
+    fetchSite: async () => toSite(await get("/v1/site", {})),
 
     async *fetchMeasurements({ since }) {
       let cursor: string | null = null;
@@ -112,7 +113,8 @@ export function createWindiqSource(config: WindiqConfig): MeasurementSource & Si
         const params: Record<string, string> = { limit: String(PAGE_SIZE) };
         if (since) params.since = since.toISOString();
         if (cursor) params.cursor = cursor;
-        const page: ApiMeasurementPage = await get("/v1/measurements", params);
+        // Shape of measurement pages is checked with JAK-14; readings are checked in core.
+        const page = (await get("/v1/measurements", params)) as ApiMeasurementPage;
         yield page.data.map(toMeasurementInput);
         cursor = page.next_cursor;
       } while (cursor);
@@ -120,47 +122,57 @@ export function createWindiqSource(config: WindiqConfig): MeasurementSource & Si
   };
 }
 
-function toMast(m: ApiMast): Mast {
+// Mappers check each field on the way in: a wrong shape fails the run with a clear message
+// instead of turning into a NaN result. Field names follow the API types above.
+
+function toMast(body: unknown): Mast {
+  const m = ShapeReader.of("/v1/mast", body);
   return {
-    id: m.id,
-    name: m.name,
-    latitude: m.latitude,
-    longitude: m.longitude,
-    measurementHeightM: m.measurement_height_m,
-    operator: m.operator,
-    commissionedAt: m.commissioned_at,
+    id: m.string("id"),
+    name: m.string("name"),
+    latitude: m.number("latitude"),
+    longitude: m.number("longitude"),
+    measurementHeightM: m.positive("measurement_height_m"),
+    operator: m.string("operator"),
+    commissionedAt: m.string("commissioned_at"),
   };
 }
 
-function toTurbine(t: ApiTurbine): Turbine {
+function toTurbine(body: unknown): Turbine {
+  const t = ShapeReader.of("/v1/turbine", body);
   return {
-    id: t.id,
-    name: t.name,
-    ratedPowerKw: t.rated_power_kw,
-    hubHeightM: t.hub_height_m,
-    rotorDiameterM: t.rotor_diameter_m,
-    cutInWindSpeedMs: t.cut_in_wind_speed_ms,
-    cutOutWindSpeedMs: t.cut_out_wind_speed_ms,
-    powerCurve: t.power_curve.map((p) => ({ windSpeedMs: p.wind_speed_ms, powerKw: p.power_kw })),
-    version: t.version,
-    updatedAt: t.updated_at,
+    id: t.string("id"),
+    name: t.string("name"),
+    ratedPowerKw: t.positive("rated_power_kw"),
+    hubHeightM: t.positive("hub_height_m"),
+    rotorDiameterM: t.positive("rotor_diameter_m"),
+    cutInWindSpeedMs: t.number("cut_in_wind_speed_ms"),
+    cutOutWindSpeedMs: t.number("cut_out_wind_speed_ms"),
+    powerCurve: t.nonEmptyList("power_curve").map((p) => ({
+      windSpeedMs: p.number("wind_speed_ms"),
+      powerKw: p.number("power_kw"),
+    })),
+    version: t.integer("version"),
+    updatedAt: t.string("updated_at"),
   };
 }
 
-function toSite(s: ApiSite): Site {
+function toSite(body: unknown): Site {
+  const s = ShapeReader.of("/v1/site", body);
+  const losses = s.object("losses");
   return {
-    id: s.id,
-    name: s.name,
-    mastId: s.mast_id,
-    shearExponent: s.shear_exponent,
+    id: s.string("id"),
+    name: s.string("name"),
+    mastId: s.string("mast_id"),
+    shearExponent: s.number("shear_exponent"),
     losses: {
-      availability: s.losses.availability,
-      electrical: s.losses.electrical,
-      wake: s.losses.wake,
+      availability: losses.share("availability"),
+      electrical: losses.share("electrical"),
+      wake: losses.share("wake"),
     },
-    uncertainty: s.uncertainty,
-    version: s.version,
-    updatedAt: s.updated_at,
+    uncertainty: s.share("uncertainty"),
+    version: s.integer("version"),
+    updatedAt: s.string("updated_at"),
   };
 }
 
