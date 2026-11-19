@@ -14,7 +14,7 @@ import {
   nextCorrectionCursor,
   type MeasurementInput,
 } from "@/core/measurement";
-import { calculateYield, sameFingerprint } from "@/core/yield";
+import { calculateYield, sameFingerprint, yieldBasis } from "@/core/yield";
 import {
   correctionCursor,
   failSyncRun,
@@ -32,6 +32,7 @@ import {
   upsertMast,
   upsertMeasurements,
   type SyncJob,
+  type SyncRunCounts,
 } from "@/db";
 import type { MeasurementSource, SiteDataSource } from "@/sources/types";
 import { createWindiqSource } from "@/sources/windiq";
@@ -46,9 +47,6 @@ function log(level: "info" | "warn" | "error", msg: string, extra: Record<string
   console[level](JSON.stringify({ ts: new Date().toISOString(), level, msg, ...extra }));
 }
 
-/** What a job did so far: items processed, and how many of them corrected a stored reading. */
-type JobOutcome = { items: number; corrections: number };
-
 /**
  * Records a sync run in `sync_runs` around the given job function. The job fills in `outcome` as
  * it goes, so a run that fails halfway still records what it stored before failing.
@@ -56,11 +54,11 @@ type JobOutcome = { items: number; corrections: number };
  */
 async function runJob(
   job: SyncJob,
-  fn: (outcome: JobOutcome) => Promise<void>,
-): Promise<JobOutcome | null> {
+  fn: (outcome: SyncRunCounts) => Promise<void>,
+): Promise<SyncRunCounts | null> {
   const runId = await startSyncRun(job);
   const started = Date.now();
-  const outcome: JobOutcome = { items: 0, corrections: 0 };
+  const outcome: SyncRunCounts = { items: 0, corrections: 0 };
   try {
     await fn(outcome);
     await finishSyncRun(runId, outcome);
@@ -114,7 +112,7 @@ const CORRECTION_OVERLAP_MS = 60 * 60_000;
  * The cursor is saved after every page, so a run that fails halfway resumes where it stopped.
  * A reading is written only when its hour is new or its version is higher than the stored one.
  */
-async function syncMeasurements(source: MeasurementSource, outcome: JobOutcome): Promise<void> {
+async function syncMeasurements(source: MeasurementSource, outcome: SyncRunCounts): Promise<void> {
   const mast = await source.fetchMast();
   await upsertMast(mast);
 
@@ -164,7 +162,7 @@ async function syncMeasurements(source: MeasurementSource, outcome: JobOutcome):
  */
 async function recalculateYield(
   source: MeasurementSource & SiteDataSource,
-  outcome: JobOutcome,
+  outcome: SyncRunCounts,
 ): Promise<void> {
   const [mast, turbine, site] = await Promise.all([
     source.fetchMast(),
@@ -174,28 +172,21 @@ async function recalculateYield(
   if (site.mastId !== mast.id) {
     throw new Error(`site ${site.id} belongs to mast ${site.mastId}, not to mast ${mast.id}`);
   }
-  await upsertMast(mast);
-  await saveTurbineVersion(turbine);
-  await saveSiteVersion(site);
+  // Independent rows: the version tables do not reference the mast.
+  await Promise.all([upsertMast(mast), saveTurbineVersion(turbine), saveSiteVersion(site)]);
 
   const newestHour = await newestMeasurementHour(mast.id);
   if (!newestHour) return;
   const window = rollingYear(newestHour);
+  const [readingsSyncedAt, previous] = await Promise.all([
+    newestReadingSync(mast.id, window),
+    latestYieldResult(mast.id),
+  ]);
   // Never null here: the newest hour itself lies in the window.
-  const readingsSyncedAt = await newestReadingSync(mast.id, window);
   if (!readingsSyncedAt) throw new Error(`no readings for mast ${mast.id} in its own window`);
 
-  const current = {
-    mastId: mast.id,
-    measurementHeightM: mast.measurementHeightM,
-    turbineId: turbine.id,
-    turbineVersion: turbine.version,
-    siteId: site.id,
-    siteVersion: site.version,
-    windowEnd: newestHour,
-    readingsSyncedAt,
-  };
-  if (sameFingerprint(await latestYieldResult(mast.id), current)) return;
+  const current = { ...yieldBasis(mast, turbine, site), windowEnd: newestHour, readingsSyncedAt };
+  if (sameFingerprint(previous, current)) return;
 
   const readings = await measurementsInWindow(mast.id, window);
   const result = calculateYield({ readings, window, mast, turbine, site });

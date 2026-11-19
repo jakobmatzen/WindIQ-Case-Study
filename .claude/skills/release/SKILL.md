@@ -11,7 +11,7 @@ Takes `dev` to production. Background: `docs/WORKFLOW.md`. After a hotfix merge,
 ## 1. Orient
 
 1. `git fetch origin`. Local `dev` must equal `origin/dev` and the tree must be clean.
-2. Release version = `package.json` on `dev` without the beta suffix (`1.0.0-beta.7` → `1.0.0`). Already without suffix: ask.
+2. Release version = `package.json` on `dev` without the `v` prefix and the beta suffix (`v1.0.0-beta.7` → `1.0.0`). Already without suffix: ask.
 3. Collect the release contents: `git log origin/main..origin/dev --first-parent`, skipping forward-integration merges. Each remaining commit is one `v…-beta.N` squash; keep its title, bullets and `#PR` footer.
 
 Done when you can list every beta going out, with its PR number.
@@ -31,7 +31,7 @@ On "go":
 1. Create and switch to `release/v<version>`.
 2. Invoke the `simplify` skill on `origin/main...HEAD` (everything this release brings). Keep the cleanups that make the code clearer, skip cosmetics, commit with `commit`.
 3. Run every step of `.github/workflows/ci.yml` locally, as in `/ship` step 3.
-4. Set `package.json` `version` to `<version>`.
+4. Set `package.json` `version` to `v<version>` (with the `v`).
 5. `CHANGELOG.md`: new top section `## v<version> – <today>`, bullets summarising the betas (one per beta is fine).
 6. Guide (README and Linear P-JAK-1): add a line under "Releases": version, date, one sentence on what went live.
 7. Commit with `commit`: title `Prepare v<version>`.
@@ -71,7 +71,7 @@ On "merge #<n>":
 
 After a green deploy on `main` (release or hotfix):
 
-1. Plan for the user, then wait for "go": PR `main` → `dev`, title `v<version>` (the version now on `main`), body:
+1. Plan for the user, then wait for "go": PR `main` → `dev`, title `Forward integrate main v<version>` (the version now on `main`), body:
 
 ```markdown
 Forward integration of `main` into `dev` after v<version>.
@@ -83,6 +83,6 @@ Lands as a merge commit, not a squash, so the branches share history again.
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
-2. On "go": `gh pr create --base dev --head main …`, wait for CI, give the user the URL.
-3. On "merge #<n>": `gh pr merge <n> --merge --subject "v<version>" --body "#<release or hotfix PR number>"`, then `git switch dev && git pull --ff-only`.
+2. On "go": check `git merge-tree --write-tree --name-only origin/dev origin/main`. Clean: `gh pr create --base dev --head main …`. Conflicts (e.g. add/add after a squash): tell the user, and on "go" create `forward/v<version>` from `dev`, merge `origin/main` there, resolve, push, and open the PR from that branch instead. If `main` contains all of `dev` (true right after a release), resolve to `main`'s tree: `git checkout origin/main -- .`. Wait for CI, give the user the URL.
+3. On "merge #<n>": `gh pr merge <n> --merge --subject "Forward integrate main v<version>" --body "#<release or hotfix PR number>"`, then `git switch dev && git pull --ff-only`.
 4. Linear: set the tickets in this release to "Done" if they are not already.

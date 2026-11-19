@@ -1,5 +1,7 @@
+import { HOURS_PER_YEAR } from "@/core/coverage";
 import type { LossKey, YieldDerivation } from "@/core/derivation";
-import { formatDateTime, formatInt, formatPercent } from "@/lib/format";
+import { Z_90 } from "@/core/yield";
+import { formatDateTime, formatDecimal, formatInt, formatPercent } from "@/lib/format";
 import { Card } from "./label";
 
 export type LossWaterfallProps = {
@@ -34,7 +36,7 @@ export function LossWaterfall({ grossAepMwh, derivation: d, ...props }: LossWate
   const rows: Row[] = [
     {
       label: "AEP brutto",
-      note: `Kennlinie Anlage v${props.turbineVersion}, auf 8.760 h hochgerechnet`,
+      note: `Kennlinie Anlage v${props.turbineVersion}, auf ${formatInt(HOURS_PER_YEAR)} h hochgerechnet`,
       from: 0,
       to: grossAepMwh,
       kind: "total",
@@ -55,7 +57,7 @@ export function LossWaterfall({ grossAepMwh, derivation: d, ...props }: LossWate
     },
     {
       label: "Unsicherheit",
-      note: `− 1,282 × ${formatPercent(props.uncertainty)} · Standort v${props.siteVersion}`,
+      note: `− ${formatDecimal(Z_90, 3)} × ${formatPercent(props.uncertainty)} · Standort v${props.siteVersion}`,
       from: d.p90Mwh,
       to: d.netAepMwh,
       kind: "loss",
