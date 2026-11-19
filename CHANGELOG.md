@@ -2,6 +2,11 @@
 
 All versions of the WindIQ case study (Vidia Equity). Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0-beta.11 – 2026-11-19
+
+- Trend chart shows P50/P90 dots only for the hovered or tapped result
+- Trend subtitle counts results and points to hover or tap for details
+
 ## v1.0.0-beta.10 – 2026-11-18
 
 - Docs name Vidia Equity as the company and WindIQ as the project
