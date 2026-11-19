@@ -20,7 +20,8 @@ const SERIES = [
 /**
  * P50 and P90 of every stored result over time, as steps: a value holds until the next result.
  * Each result owns the slice of the chart nearest to it, so hovering or tapping anywhere shows
- * the closest result, even when the points sit close together.
+ * the closest result, even when the points sit close together. Its dots appear only then: with
+ * one dot pair per result, permanent dots would crowd the lines as the history grows.
  */
 export function YieldTrend({ history }: { history: YieldTrendPoint[] }) {
   return (
@@ -29,7 +30,7 @@ export function YieldTrend({ history }: { history: YieldTrendPoint[] }) {
         Verlauf P50 und P90
       </h2>
       <p className="mb-4 text-sm text-muted-foreground">
-        Ein Punkt je neu berechnetem Ergebnis ({formatInt(history.length)} bisher).
+        Eine Stufe je neu berechnetem Ergebnis ({formatInt(history.length)} bisher).
       </p>
       {history.length === 0 ? (
         <p className="text-sm text-muted-foreground">Verlauf gerade nicht verfügbar.</p>
@@ -113,7 +114,7 @@ function Chart({ history }: { history: YieldTrendPoint[] }) {
                 <span
                   key={s.key}
                   className={
-                    "absolute size-2.5 -translate-1/2 rounded-full ring-2 ring-card transition-[scale] duration-150 ease-out motion-safe:group-hover:scale-150 motion-safe:group-data-popup-open:scale-150 " +
+                    "absolute size-2.5 -translate-1/2 rounded-full opacity-0 ring-2 ring-card transition-[opacity,scale] duration-150 ease-out group-hover:opacity-100 group-data-popup-open:opacity-100 motion-safe:group-hover:scale-150 motion-safe:group-data-popup-open:scale-150 " +
                     s.dot
                   }
                   style={{ left: dotLeft, top: `${y(h[s.key])}%` }}
