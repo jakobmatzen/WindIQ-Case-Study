@@ -42,10 +42,10 @@ Done when every CI step passes in one uninterrupted run.
 
 Current version: `package.json` `version`.
 
-- **feature**: target = the ticket's milestone without `v` (e.g. `1.0.0`). Current is `<target>-beta.N` → `<target>-beta.<N+1>`; otherwise → `<target>-beta.1`. No milestone: ask.
-- **hotfix**: take `main`'s version (`git show origin/main:package.json`) and bump the patch (`1.0.0` → `1.0.1`). Never a beta.
+- **feature**: target = the ticket's milestone, with its `v` (e.g. `v1.0.0`). Current is `<target>-beta.N` → `<target>-beta.<N+1>`; otherwise → `<target>-beta.1`. No milestone: ask.
+- **hotfix**: take `main`'s version (`git show origin/main:package.json`) and bump the patch (`v1.0.0` → `v1.0.1`). Never a beta.
 
-Write the new version to `package.json`.
+Write the new version to `package.json`, with the `v` prefix (`v1.0.0-beta.3`).
 
 ## 5. Document
 

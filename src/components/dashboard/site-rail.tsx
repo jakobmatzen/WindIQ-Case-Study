@@ -77,7 +77,7 @@ export function SiteRail(props: SiteRailProps) {
         )}
       </div>
 
-      <p className="font-mono text-xs text-white/50 lg:mt-auto">v{props.appVersion}</p>
+      <p className="font-mono text-xs text-white/50 lg:mt-auto">{props.appVersion}</p>
     </aside>
   );
 }
