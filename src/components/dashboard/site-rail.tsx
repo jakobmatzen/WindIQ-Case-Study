@@ -2,6 +2,8 @@ import { COVERAGE_THRESHOLDS, type YieldQuality } from "@/core/yield";
 import { formatDateTime, formatInt, formatPercent } from "@/lib/format";
 import { CoverageMeter, QUALITY_LABEL } from "./coverage-meter";
 import { Label } from "./label";
+import { LiveStatus } from "./live-status";
+import { ValueChange } from "./value-change";
 
 export type SiteRailProps = {
   siteName: string;
@@ -9,6 +11,8 @@ export type SiteRailProps = {
   appVersion: string;
   dataAsOf: Date;
   stale: boolean;
+  /** Version of the data shown, for the live refresh. */
+  dataVersion: string | null;
   p90Mwh: number;
   p50Mwh: number;
   quality: YieldQuality;
@@ -35,8 +39,10 @@ export function SiteRail(props: SiteRailProps) {
         <h1 className="mt-1 font-heading text-2xl font-semibold tracking-tight text-balance">
           {props.siteName}
         </h1>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/75">
-          <StatusPill stale={props.stale} />
+        {/* Separate lines: the pill's width changes with its ticking time, and a shared
+            wrapping row would make "Datenstand" jump. */}
+        <div className="mt-3 flex flex-col items-start gap-2 text-xs text-white/75">
+          <LiveStatus stale={props.stale} dataVersion={props.dataVersion} />
           <span>Datenstand {formatDateTime(props.dataAsOf)}</span>
         </div>
       </header>
@@ -94,27 +100,11 @@ function Headline({
         <span className="block font-heading text-3xl font-semibold tabular-nums lg:text-5xl">
           {formatInt(value)}
         </span>
-        <span className="text-xs text-white/70">MWh/a</span>
+        <span className="flex items-center gap-2 text-xs text-white/70">
+          MWh/a
+          <ValueChange value={value} />
+        </span>
       </dd>
     </div>
-  );
-}
-
-function StatusPill({ stale }: { stale: boolean }) {
-  return (
-    <span
-      className={
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium " +
-        (stale
-          ? "bg-warning-on-navy/20 text-warning-on-navy"
-          : "bg-success-on-navy/15 text-success-on-navy")
-      }
-    >
-      <span
-        className={"size-1.5 rounded-full " + (stale ? "bg-warning-on-navy" : "bg-success-on-navy")}
-        aria-hidden
-      />
-      {stale ? "Daten veraltet" : "Aktuell"}
-    </span>
   );
 }

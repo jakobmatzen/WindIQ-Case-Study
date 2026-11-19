@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, max } from "drizzle-orm";
 import { getDb } from "./client";
 import { syncRuns, type SyncJob, type SyncRun } from "./schema";
 
@@ -53,4 +53,17 @@ export async function lastSuccessfulSync(job: SyncJob): Promise<Date | null> {
 /** The newest runs of all jobs, newest first. */
 export async function recentSyncRuns(limit: number): Promise<SyncRun[]> {
   return getDb().select().from(syncRuns).orderBy(desc(syncRuns.startedAt)).limit(limit);
+}
+
+/**
+ * A token that changes whenever the worker does something the dashboard shows: a run starts
+ * (new id) or finishes (new finished_at). Every new result comes from a finished yield run, so
+ * a new result changes the token too. Null before the first run.
+ */
+export async function syncActivityToken(): Promise<string | null> {
+  const [row] = await getDb()
+    .select({ lastId: max(syncRuns.id), lastFinishedAt: max(syncRuns.finishedAt) })
+    .from(syncRuns);
+  if (!row?.lastId) return null;
+  return `${row.lastId}:${row.lastFinishedAt?.getTime() ?? 0}`;
 }

@@ -91,3 +91,11 @@ export function formatMonthLong(month: Date): string {
 export function formatMonthLetter(month: Date): string {
   return monthLetter.format(month);
 }
+
+/** How long ago, for a ticking label: gerade eben, vor 12 s, vor 3 min, vor 2 h */
+export function formatAgo(seconds: number): string {
+  if (seconds < 5) return "gerade eben";
+  if (seconds < 60) return `vor ${Math.floor(seconds)} s`;
+  if (seconds < 3600) return `vor ${Math.floor(seconds / 60)} min`;
+  return `vor ${Math.floor(seconds / 3600)} h`;
+}

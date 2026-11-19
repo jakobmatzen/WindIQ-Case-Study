@@ -17,6 +17,7 @@ import {
 } from "@/db";
 import { runDisplayStatus, sourceOutage, type RunDisplayStatus } from "@/lib/health";
 import { maxSyncAgeMinutes } from "./health";
+import { getDataVersion } from "./live";
 
 export type DashboardDto = {
   siteName: string;
@@ -53,6 +54,8 @@ export type DashboardDto = {
   /** The latest worker runs, newest first; null if they cannot be read. */
   runs: SyncRunDto[] | null;
   statusPageUrl: string;
+  /** Token of the data this page was rendered from; the page polls for a newer one. */
+  dataVersion: string | null;
 };
 
 /** A worker run as the public page shows it: no raw error text, which may name internal hosts. */
@@ -89,7 +92,12 @@ function secondary<T>(what: string, fallback: T) {
  */
 export async function getDashboard(): Promise<DashboardDto | null> {
   await connection(); // request time only: the build never touches the database
-  const [mast] = await listMasts();
+  // The version is read before the result: a change in between then causes one extra
+  // refresh, never a missed one. In parallel with the mast lookup, which it does not depend on.
+  const [dataVersion, [mast]] = await Promise.all([
+    getDataVersion().catch(secondary("data version", null)),
+    listMasts(),
+  ]);
   if (!mast) return null;
   const [details, lastSync, history, runs] = await Promise.all([
     latestYieldResultDetails(mast.id),
@@ -158,5 +166,6 @@ export async function getDashboard(): Promise<DashboardDto | null> {
         corrections: r.corrections,
       })) ?? null,
     statusPageUrl: STATUS_PAGE_URL,
+    dataVersion,
   };
 }

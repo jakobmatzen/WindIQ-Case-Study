@@ -77,6 +77,7 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 18.11. | Der Worker speichert mit jedem Ergebnis auch die Monatswerte und die Ablehnungsgründe | Die Seite rechnet weiterhin nicht selbst, und jedes Ergebnis bleibt mit seiner Monatsaufteilung nachvollziehbar |
 | 18.11. | Tooltips öffnen sofort beim Überfahren und auch per Tippen, weiterhin ohne Chart-Bibliothek | Auf dem Handy gibt es kein Hover. Im Verlauf gehört jedem Punkt der nächstgelegene Streifen, so trifft man ihn auch bei vielen Ergebnissen. |
 | 19.11. | Im Verlauf erscheinen die Punkte nur beim Überfahren oder Tippen | Mit jedem Ergebnis kommen zwei Punkte dazu. Ohne sie bleiben die Linien auch nach Wochen Betrieb ruhig und lesbar. |
+| 19.11. | Live-Aktualisierung per kurzer Abfrage alle 30 Sekunden statt Supabase Realtime | Der Browser greift nie direkt auf die Datenbank zu, und neue Daten kommen höchstens stündlich. Realtime bräuchte einen öffentlichen Schlüssel und Freigaben direkt auf den Tabellen. |
 
 ## 5. Befunde aus der API
 
@@ -104,6 +105,7 @@ Ein vollständiger Abruf (17.11., 8.707 Stundenwerte über ein Jahr) zeigt, womi
 - **Deploy:** nach jedem Deploy prüft ein Smoke-Test `/api/health`.
 - **Betrieb im Dashboard:** die letzten Läufe mit Status, verarbeiteten Werten und Korrekturen, dazu der Link zur Statusseite. Fehlertexte stehen nur im Log, nicht auf der öffentlichen Seite, weil sie interne Hosts nennen können.
 - **Ausfall-Hinweis:** Ist der letzte erfolgreiche Abruf älter als 2 Stunden, zeigt die Seite einen Hinweis. Das zuletzt berechnete Ergebnis bleibt sichtbar.
+- **Live-Aktualisierung:** Die Seite fragt alle 30 Sekunden `/api/version` ab und holt ihre Daten nur neu, wenn der Worker etwas geändert hat, ohne Neuladen und ohne Scrollsprung. „Live · vor 12 s“ zeigt, wann zuletzt geprüft wurde. Fällt die Abfrage zweimal aus, steht dort „Keine Verbindung“, die Daten bleiben sichtbar. Hält der Worker an, springt die Seite nach 2 Stunden von selbst auf „Daten veraltet“.
 - **Logs:** strukturiert (JSON) und rotiert. Jede Wiederholung eines Requests und jeder übersprungene Messwert steht als Warnung im Log.
 
 ## 7. Annahmen

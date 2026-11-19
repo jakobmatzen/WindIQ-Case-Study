@@ -47,7 +47,8 @@ Imports across layers use the `@/` alias; relative imports stay inside a layer. 
 | --- | --- | --- |
 | Rendering | Pages are **Server Components** and read through `server`. `"use client"` only for interactive parts (charts, toggles), as small leaves. | Data and secrets stay on the server, little JS in the browser |
 | Caching | `cacheComponents` is on. Dashboard data is read **at request time inside `<Suspense>`**, no `"use cache"`. | The worker runs in its own process and cannot invalidate Next's cache. The queries are small, so fresh reads cost little. Revisit only if load requires it. |
-| Route handlers | Only for machine endpoints (`/api/health`). | Pages read data directly on the server, so no internal REST API is needed |
+| Route handlers | Only for machine endpoints (`/api/health`, `/api/version`). | Pages read data directly on the server, so no internal REST API is needed |
+| Live refresh | A small client leaf polls `/api/version` (one cheap query on `sync_runs`) every 30 s and calls `router.refresh()` only when the token changed. No Supabase Realtime. | The browser never touches the database, and data arrives hourly, so polling is as good as push. A failed check changes nothing on the page. |
 | `server-only` | Every `src/server` module imports it. | Build fails if one ends up in a client bundle |
 
 `server-only` throws outside Next's server bundles, so the worker and `bun test` must not import `src/server`. Shared logic for both belongs in `core` or `db`.
