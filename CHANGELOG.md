@@ -2,6 +2,14 @@
 
 All versions of the WindIQ case study (Vidia Equity). Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0-beta.12 – 2026-11-19
+
+- Dashboard refreshes itself when the worker stores something new, without a reload
+- /api/version returns a data version; the page polls it every 30 s and on tab focus
+- Rail pill reads "Live · vor 12 s" with a pulsing dot while data is fresh
+- Pill reads "Daten veraltet" or "Keine Verbindung" with a still dot when it cannot vouch for live data
+- P90/P50 show a short difference chip when a refresh changes them
+
 ## v1.0.0-beta.11 – 2026-11-19
 
 - Trend chart shows P50/P90 dots only for the hovered or tapped result
