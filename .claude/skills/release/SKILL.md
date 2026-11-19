@@ -71,7 +71,7 @@ On "merge #<n>":
 
 After a green deploy on `main` (release or hotfix):
 
-1. Plan for the user, then wait for "go": PR `main` → `dev`, title `v<version>` (the version now on `main`), body:
+1. Plan for the user, then wait for "go": PR `main` → `dev`, title `Forward integrate main v<version>` (the version now on `main`), body:
 
 ```markdown
 Forward integration of `main` into `dev` after v<version>.
@@ -83,6 +83,6 @@ Lands as a merge commit, not a squash, so the branches share history again.
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
-2. On "go": `gh pr create --base dev --head main …`, wait for CI, give the user the URL.
-3. On "merge #<n>": `gh pr merge <n> --merge --subject "v<version>" --body "#<release or hotfix PR number>"`, then `git switch dev && git pull --ff-only`.
+2. On "go": check `git merge-tree --write-tree --name-only origin/dev origin/main`. Clean: `gh pr create --base dev --head main …`. Conflicts (e.g. add/add after a squash): tell the user, and on "go" create `forward/v<version>` from `dev`, merge `origin/main` there, resolve, push, and open the PR from that branch instead. If `main` contains all of `dev` (true right after a release), resolve to `main`'s tree: `git checkout origin/main -- .`. Wait for CI, give the user the URL.
+3. On "merge #<n>": `gh pr merge <n> --merge --subject "Forward integrate main v<version>" --body "#<release or hotfix PR number>"`, then `git switch dev && git pull --ff-only`.
 4. Linear: set the tickets in this release to "Done" if they are not already.
