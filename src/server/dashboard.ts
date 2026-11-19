@@ -12,12 +12,12 @@ import {
   latestYieldResultDetails,
   listMasts,
   recentSyncRuns,
-  syncActivityToken,
   yieldHistory,
   type YieldHistoryPoint,
 } from "@/db";
 import { runDisplayStatus, sourceOutage, type RunDisplayStatus } from "@/lib/health";
 import { maxSyncAgeMinutes } from "./health";
+import { getDataVersion } from "./live";
 
 export type DashboardDto = {
   siteName: string;
@@ -92,9 +92,12 @@ function secondary<T>(what: string, fallback: T) {
  */
 export async function getDashboard(): Promise<DashboardDto | null> {
   await connection(); // request time only: the build never touches the database
-  // Read before the data: a change in between then causes one extra refresh, never a missed one.
-  const dataVersion = await syncActivityToken().catch(secondary("data version", null));
-  const [mast] = await listMasts();
+  // The version is read before the result: a change in between then causes one extra
+  // refresh, never a missed one. In parallel with the mast lookup, which it does not depend on.
+  const [dataVersion, [mast]] = await Promise.all([
+    getDataVersion().catch(secondary("data version", null)),
+    listMasts(),
+  ]);
   if (!mast) return null;
   const [details, lastSync, history, runs] = await Promise.all([
     latestYieldResultDetails(mast.id),

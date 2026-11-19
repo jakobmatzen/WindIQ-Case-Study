@@ -11,9 +11,11 @@ export function ValueChange({ value }: { value: number }) {
   const [change, setChange] = useState<{ delta: number; key: number } | null>(null);
 
   // Adjusting state during render on a prop change, as React recommends over an effect.
+  // Compared as shown (whole MWh): a change below rounding is no news and gets no "▲ 0".
   if (value !== previous) {
     setPrevious(value);
-    setChange({ delta: value - previous, key: (change?.key ?? 0) + 1 });
+    const delta = Math.round(value) - Math.round(previous);
+    if (delta !== 0) setChange({ delta, key: (change?.key ?? 0) + 1 });
   }
   if (!change) return null;
 

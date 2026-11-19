@@ -7,11 +7,15 @@ import { SiteRail } from "@/components/dashboard/site-rail";
 import { SyncRuns } from "@/components/dashboard/sync-runs";
 import { WindChain } from "@/components/dashboard/wind-chain";
 import { YieldTrend } from "@/components/dashboard/yield-trend";
+import { LiveRefresh } from "@/components/dashboard/live-status";
 import { getDashboard } from "@/server/dashboard";
+import { getDataVersion } from "@/server/live";
 
 async function Dashboard() {
   const data = await getDashboard();
   if (!data) {
+    // No result yet: keep polling, so the first one appears without a reload.
+    const dataVersion = await getDataVersion().catch(() => null);
     return (
       <main className="flex flex-1 items-center justify-center px-4 py-16">
         <div className="max-w-sm text-center">
@@ -20,6 +24,7 @@ async function Dashboard() {
             Noch kein Ergebnis berechnet. Sobald die ersten Messwerte abgerufen sind, erscheint hier
             der Jahresertrag.
           </p>
+          <LiveRefresh dataVersion={dataVersion} />
         </div>
       </main>
     );
