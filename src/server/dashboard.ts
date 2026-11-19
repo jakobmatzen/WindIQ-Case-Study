@@ -2,7 +2,7 @@ import "server-only";
 import { connection } from "next/server";
 import { deriveYield, type YieldDerivation } from "@/core/derivation";
 import {
-  REJECTION_REASONS,
+  rejectionCounts,
   type MonthYield,
   type RejectionReason,
   type YieldQuality,
@@ -12,12 +12,13 @@ import {
   latestYieldResultDetails,
   listMasts,
   recentSyncRuns,
+  syncActivityToken,
   yieldHistory,
   type YieldHistoryPoint,
 } from "@/db";
 import { runDisplayStatus, sourceOutage, type RunDisplayStatus } from "@/lib/health";
 import { maxSyncAgeMinutes } from "./health";
-import { getDataVersion } from "./live";
+import { toDataVersion } from "./live";
 
 export type DashboardDto = {
   siteName: string;
@@ -94,21 +95,27 @@ export async function getDashboard(): Promise<DashboardDto | null> {
   await connection(); // request time only: the build never touches the database
   // The version is read before the result: a change in between then causes one extra
   // refresh, never a missed one. In parallel with the mast lookup, which it does not depend on.
-  const [dataVersion, [mast]] = await Promise.all([
-    getDataVersion().catch(secondary("data version", null)),
+  // Version, outage notice, trend and runs are secondary: if one cannot be read, the result is
+  // still shown. `undefined` marks a failed read, so the version is never built from half of it.
+  const [activity, lastSync, [mast]] = await Promise.all([
+    syncActivityToken().catch(secondary("data version", undefined)),
+    lastSuccessfulSync("measurements").catch(secondary("last sync lookup", undefined)),
     listMasts(),
   ]);
+  const now = new Date();
+  const dataVersion =
+    activity === undefined || lastSync === undefined
+      ? null
+      : toDataVersion(activity, lastSync, now);
   if (!mast) return null;
-  const [details, lastSync, history, runs] = await Promise.all([
+  const [details, history, runs] = await Promise.all([
     latestYieldResultDetails(mast.id),
-    // Outage notice, trend and runs are secondary: if one cannot be read, the result is still shown.
-    lastSuccessfulSync("measurements").catch(secondary("last sync lookup", null)),
     yieldHistory(mast.id, HISTORY_LIMIT).catch(secondary("yield history", [])),
     recentSyncRuns(RECENT_RUNS).catch(secondary("recent sync runs", null)),
   ]);
   if (!details) return null;
   const { result, site, turbine } = details;
-  const now = new Date();
+  const maxAgeMinutes = maxSyncAgeMinutes();
 
   return {
     siteName: site.name,
@@ -116,7 +123,7 @@ export async function getDashboard(): Promise<DashboardDto | null> {
     appVersion: process.env.APP_VERSION ?? "dev",
     dataAsOf: result.windowEnd,
     calculatedAt: result.calculatedAt,
-    outage: sourceOutage(lastSync, now, maxSyncAgeMinutes()),
+    outage: sourceOutage(lastSync ?? null, now, maxAgeMinutes),
     quality: result.quality,
     p50Mwh: result.p50Mwh,
     p90Mwh: result.p90Mwh,
@@ -150,17 +157,13 @@ export async function getDashboard(): Promise<DashboardDto | null> {
     }),
     months: result.months?.map((m) => ({ ...m, month: new Date(m.month) })) ?? null,
     // Stored JSON: a reason added later is missing in older rows and counts as 0.
-    rejections: result.rejections
-      ? (Object.fromEntries(
-          REJECTION_REASONS.map((r) => [r, result.rejections?.[r] ?? 0]),
-        ) as Record<RejectionReason, number>)
-      : null,
+    rejections: result.rejections ? rejectionCounts(result.rejections) : null,
     history,
     runs:
       runs?.map((r) => ({
         id: r.id,
         job: r.job,
-        status: runDisplayStatus(r, now, maxSyncAgeMinutes()),
+        status: runDisplayStatus(r, now, maxAgeMinutes),
         startedAt: r.startedAt,
         itemsProcessed: r.itemsProcessed,
         corrections: r.corrections,

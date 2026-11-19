@@ -1,3 +1,4 @@
+import { MAX_PLAUSIBLE_WIND_SPEED_MS } from "@/core/measurement";
 import { REJECTION_REASONS, type RejectionReason } from "@/core/yield";
 import { formatInt } from "@/lib/format";
 import { Card } from "./label";
@@ -5,7 +6,10 @@ import { Card } from "./label";
 const REASON: Record<RejectionReason, { label: string; note: string }> = {
   missing: { label: "Leer", note: "Datensatz ohne Wert (null)" },
   sentinel: { label: "Fehlerwert −999", note: "Fehlercode des Messmasts" },
-  out_of_range: { label: "Unplausibel", note: "unter 0 oder über 40 m/s" },
+  out_of_range: {
+    label: "Unplausibel",
+    note: `unter 0 oder über ${formatInt(MAX_PLAUSIBLE_WIND_SPEED_MS)} m/s`,
+  },
   unparseable: { label: "Nicht lesbar", note: "Text, der keine Zahl ist" },
   unknown_unit: { label: "Unbekannte Einheit", note: "weder m/s noch km/h" },
 };

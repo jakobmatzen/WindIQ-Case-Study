@@ -7,6 +7,7 @@ import {
   calculateYield,
   isPartialMonth,
   qualityOf,
+  rejectionCounts,
   sameFingerprint,
   type YieldFingerprint,
 } from "./yield";
@@ -302,5 +303,17 @@ describe("qualityOf", () => {
     expect(qualityOf(0.7)).toBe("uncertain");
     expect(qualityOf(0.699)).toBe("not_meaningful");
     expect(qualityOf(0)).toBe("not_meaningful");
+  });
+});
+
+describe("rejectionCounts", () => {
+  test("counts 0 for every reason missing in a stored record", () => {
+    expect(rejectionCounts({ sentinel: 42 })).toEqual({
+      missing: 0,
+      sentinel: 42,
+      out_of_range: 0,
+      unparseable: 0,
+      unknown_unit: 0,
+    });
   });
 });

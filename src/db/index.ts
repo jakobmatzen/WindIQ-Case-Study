@@ -1,7 +1,7 @@
 // Public entry of the db layer. Other layers import from "@/db" only.
 export { getDb } from "./client";
 export * as schema from "./schema";
-export type { StoredMonth, SyncJob, SyncRun } from "./schema";
+export type { SyncJob, SyncRun } from "./schema";
 export {
   correctionCursor,
   listMasts,
@@ -20,6 +20,7 @@ export {
   recentSyncRuns,
   startSyncRun,
   syncActivityToken,
+  type SyncRunCounts,
 } from "./sync-runs";
 export {
   insertYieldResult,
