@@ -134,7 +134,7 @@ Wo Aufgabe und API-Doku offen sind, gilt die folgende Annahme. Die mit *nachgefr
 
 ## Releases
 
-Noch kein Release.
+- **v1.0.0** (19.11.2026): erstes Release. Das Live-Dashboard mit Jahresertrag, P50, P90, Datenabdeckung und Herleitung läuft in Produktion, der Worker holt stündlich neue Messwerte und Korrekturen.
 
 ## Lokal starten
 

@@ -16,7 +16,16 @@ export async function getDataVersion(): Promise<string | null> {
     syncActivityToken(),
     lastSuccessfulSync("measurements"),
   ]);
+  return toDataVersion(activity, lastSync, new Date());
+}
+
+/** The data version from already-read sync state, for callers that need `lastSync` themselves. */
+export function toDataVersion(
+  activity: string | null,
+  lastSync: Date | null,
+  now: Date,
+): string | null {
   if (activity === null) return null;
-  const stale = sourceOutage(lastSync, new Date(), maxSyncAgeMinutes()) !== null;
+  const stale = sourceOutage(lastSync, now, maxSyncAgeMinutes()) !== null;
   return `${activity}:${stale ? "stale" : "fresh"}`;
 }

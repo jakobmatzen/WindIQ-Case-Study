@@ -2,6 +2,24 @@
 
 All versions of the WindIQ case study (Vidia Equity). Newest first. Process: [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
+## v1.0.0 – 2026-11-19
+
+First release: the live yield dashboard goes to production.
+
+- beta.1: workflow rules, /ship, /release and commit skills, German project guide, CHANGELOG (#1)
+- beta.2: PRs merged on "merge #N" with the exact squash message; forward integration as a merge commit (#2)
+- beta.3: architecture doc, ESLint layer boundaries, data access layer, Prettier (#3)
+- beta.4: wind readings validated test-first, WindIQ source adapter, measurements storage, full-year import, coverage on the start page (#4)
+- beta.5: yield calculation (height correction, power curve, gross/net AEP, P50, P90) with turbine and site versions per result (#5)
+- beta.6: corrections fetched via `updated_since` from a per-mast cursor (#6)
+- beta.7: timeouts, retries with backoff, token renewal on 401, response shape checks, outage notice (#7)
+- beta.8: dashboard with navy rail, key figures and the derivation from wind to P90 (#8)
+- beta.9: P50/P90 trend, energy per month, rejected readings and worker runs (#9)
+- beta.10: docs name Vidia Equity as the company; "Annahmen" section; shared coverage colors (#10)
+- beta.11: trend chart shows dots for the hovered or tapped result (#11)
+- beta.12: dashboard refreshes itself via /api/version, live pill and difference chip (#12)
+- `package.json` version now carries the `v` prefix (`v1.0.0`)
+
 ## v1.0.0-beta.12 – 2026-11-19
 
 - Dashboard refreshes itself when the worker stores something new, without a reload

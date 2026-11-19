@@ -147,6 +147,28 @@ function scaleMonths(months: MonthYield[], measuredKwh: number[], grossAepMwh: n
   });
 }
 
+/** The master data versions a result rests on; also the stable part of its fingerprint. */
+export function yieldBasis(mast: Mast, turbine: Turbine, site: Site): YieldBasis {
+  return {
+    mastId: mast.id,
+    measurementHeightM: mast.measurementHeightM,
+    turbineId: turbine.id,
+    turbineVersion: turbine.version,
+    siteId: site.id,
+    siteVersion: site.version,
+  };
+}
+
+/** A count for every rejection reason; reasons missing in `from` (e.g. older stored rows) are 0. */
+export function rejectionCounts(
+  from: Partial<Record<RejectionReason, number>> = {},
+): Record<RejectionReason, number> {
+  return Object.fromEntries(REJECTION_REASONS.map((r) => [r, from[r] ?? 0])) as Record<
+    RejectionReason,
+    number
+  >;
+}
+
 export function calculateYield({ readings, window, mast, turbine, site }: YieldInput): YieldResult {
   const coverage = calculateCoverage(readings, window);
   const hubHeightFactor = (turbine.hubHeightM / mast.measurementHeightM) ** site.shearExponent;
@@ -154,10 +176,7 @@ export function calculateYield({ readings, window, mast, turbine, site }: YieldI
   const monthIndex = new Map(months.map((m, i) => [m.month.getTime(), i]));
   const monthKwh = months.map(() => 0);
 
-  const rejections = Object.fromEntries(REJECTION_REASONS.map((r) => [r, 0])) as Record<
-    RejectionReason,
-    number
-  >;
+  const rejections = rejectionCounts();
 
   let measuredEnergyKwh = 0;
   let windSumMs = 0;
@@ -184,14 +203,7 @@ export function calculateYield({ readings, window, mast, turbine, site }: YieldI
   const netAepMwh = grossAepMwh * lossFactor;
 
   return {
-    basis: {
-      mastId: mast.id,
-      measurementHeightM: mast.measurementHeightM,
-      turbineId: turbine.id,
-      turbineVersion: turbine.version,
-      siteId: site.id,
-      siteVersion: site.version,
-    },
+    basis: yieldBasis(mast, turbine, site),
     coverage,
     quality: qualityOf(coverage.ratio),
     meanWindSpeedMs: coverage.validHours === 0 ? null : windSumMs / coverage.validHours,

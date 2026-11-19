@@ -52,7 +52,7 @@ Title is the version, body is bullets, footer is the PR number with `#`. Each PR
 - The target version is the ticket's Linear milestone (e.g. `v1.0.0`). On `dev` it counts up as `v1.0.0-beta.1`, `-beta.2`, …
 - `main` never carries a beta: `/release` strips the suffix (`v1.0.0`). After a release, only hotfixes reach `main`, as patch bumps (`v1.0.1`), never a beta.
 - New development after a release starts from a new milestone (e.g. `v2.0.0` → `v2.0.0-beta.1`).
-- `package.json` `version` and the newest `CHANGELOG.md` heading always match. Git tags only for releases on `main`.
+- `package.json` `version` and the newest `CHANGELOG.md` heading always match, `v` prefix included (`v1.0.0`). Git tags only for releases on `main`.
 
 ## Code quality
 

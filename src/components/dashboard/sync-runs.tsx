@@ -1,19 +1,25 @@
 import { ArrowUpRight } from "lucide-react";
 import { formatDayTime, formatInt } from "@/lib/format";
+import type { RunDisplayStatus } from "@/lib/health";
 import { cn } from "@/lib/utils";
 import { Card, Label } from "./label";
 
 export type SyncRunRow = {
   id: number;
   job: "measurements" | "yield";
-  status: "running" | "success" | "error" | "aborted";
+  status: RunDisplayStatus;
   startedAt: Date;
   itemsProcessed: number;
   corrections: number;
 };
 
-const JOB = { measurements: "Messwerte", yield: "Ertrag" };
-const STATUS = { success: "OK", error: "Fehler", running: "läuft", aborted: "abgebrochen" };
+const JOB: Record<SyncRunRow["job"], string> = { measurements: "Messwerte", yield: "Ertrag" };
+const STATUS: Record<RunDisplayStatus, string> = {
+  success: "OK",
+  error: "Fehler",
+  running: "läuft",
+  aborted: "abgebrochen",
+};
 
 /** The latest worker runs and the link to the external status page. */
 export function SyncRuns({

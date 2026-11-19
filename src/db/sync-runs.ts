@@ -10,7 +10,7 @@ export async function startSyncRun(job: SyncJob): Promise<number> {
   return run.id;
 }
 
-/** What a run stored: items processed, and how many of them corrected a stored reading. */
+/** What a run stored so far: items processed, and how many of them corrected a stored reading. */
 export type SyncRunCounts = { items: number; corrections: number };
 
 export async function finishSyncRun(id: number, counts: SyncRunCounts): Promise<void> {

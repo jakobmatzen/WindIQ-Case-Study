@@ -88,23 +88,13 @@ export class ShapeReader {
   }
 
   object(key: string): ShapeReader {
-    const v = this.value[key];
-    if (typeof v !== "object" || v === null || Array.isArray(v)) this.fail(key, "an object");
-    return ShapeReader.of(this.endpoint, v, `${this.prefix}${key}.`);
+    // `of` names the position on failure: "<key> must be an object".
+    return ShapeReader.of(this.endpoint, this.value[key], `${this.prefix}${key}.`);
   }
 
   nonEmptyList(key: string): ShapeReader[] {
     const v = this.value[key];
     if (!Array.isArray(v) || v.length === 0) this.fail(key, "a non-empty list");
-    return this.list(key);
-  }
-
-  list(key: string): ShapeReader[] {
-    const v = this.value[key];
-    if (!Array.isArray(v)) this.fail(key, "a list");
-    return v.map((item, i) => {
-      if (typeof item !== "object" || item === null) this.fail(`${key}[${i}]`, "an object");
-      return ShapeReader.of(this.endpoint, item, `${this.prefix}${key}[${i}].`);
-    });
+    return v.map((item, i) => ShapeReader.of(this.endpoint, item, `${this.prefix}${key}[${i}].`));
   }
 }

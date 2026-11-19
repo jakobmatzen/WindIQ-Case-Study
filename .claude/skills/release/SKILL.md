@@ -11,7 +11,7 @@ Takes `dev` to production. Background: `docs/WORKFLOW.md`. After a hotfix merge,
 ## 1. Orient
 
 1. `git fetch origin`. Local `dev` must equal `origin/dev` and the tree must be clean.
-2. Release version = `package.json` on `dev` without the beta suffix (`1.0.0-beta.7` → `1.0.0`). Already without suffix: ask.
+2. Release version = `package.json` on `dev` without the `v` prefix and the beta suffix (`v1.0.0-beta.7` → `1.0.0`). Already without suffix: ask.
 3. Collect the release contents: `git log origin/main..origin/dev --first-parent`, skipping forward-integration merges. Each remaining commit is one `v…-beta.N` squash; keep its title, bullets and `#PR` footer.
 
 Done when you can list every beta going out, with its PR number.
@@ -31,7 +31,7 @@ On "go":
 1. Create and switch to `release/v<version>`.
 2. Invoke the `simplify` skill on `origin/main...HEAD` (everything this release brings). Keep the cleanups that make the code clearer, skip cosmetics, commit with `commit`.
 3. Run every step of `.github/workflows/ci.yml` locally, as in `/ship` step 3.
-4. Set `package.json` `version` to `<version>`.
+4. Set `package.json` `version` to `v<version>` (with the `v`).
 5. `CHANGELOG.md`: new top section `## v<version> – <today>`, bullets summarising the betas (one per beta is fine).
 6. Guide (README and Linear P-JAK-1): add a line under "Releases": version, date, one sentence on what went live.
 7. Commit with `commit`: title `Prepare v<version>`.

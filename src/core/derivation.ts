@@ -27,7 +27,7 @@ export type DerivationInput = {
   ratedPowerKw: number;
 };
 
-export type LossStep = {
+type LossStep = {
   key: LossKey;
   /** Share taken off, 0.03 = 3 %. */
   share: number;
