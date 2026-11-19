@@ -1,0 +1,143 @@
+/**
+ * Checking a single wind reading: is it usable for the yield calculation, and if not, why not?
+ * Rules: CONTEXT.md and the guide's "Annahmen". Pure, no I/O.
+ */
+
+/** A reading as a source adapter delivers it, before any checks. */
+export type MeasurementInput = {
+  /** Start of the measured hour, ISO 8601 with offset. */
+  timestamp: string;
+  /** Mean wind speed of the hour at measurement height, as the source sent it. */
+  windSpeed: number | string | null;
+  unit: string;
+  windDirectionDeg: number | null;
+  version: number;
+  updatedAt: string;
+};
+
+/** Why a reading is (not) usable. Everything except `valid` is a rejection reason. */
+export const MEASUREMENT_STATUSES = [
+  "valid",
+  "missing",
+  "unparseable",
+  "sentinel",
+  "unknown_unit",
+  "out_of_range",
+] as const;
+
+export type MeasurementStatus = (typeof MEASUREMENT_STATUSES)[number];
+
+export type CheckedMeasurement = {
+  /** Start of the measured hour, in UTC. */
+  hour: Date;
+  status: MeasurementStatus;
+  /** Wind speed in m/s at measurement height, or null when the reading is rejected. */
+  windSpeedMs: number | null;
+  /** The wind speed exactly as the source sent it, as text; null when it sent none. */
+  rawValue: string | null;
+  unit: string;
+  windDirectionDeg: number | null;
+  version: number;
+  updatedAt: Date;
+};
+
+/** Error code the mast sends instead of a reading (not in the API docs, seen in real data). */
+const SENTINEL = -999;
+
+/** Factor from each accepted unit to m/s. Units are matched exactly as the API spells them. */
+const TO_METRES_PER_SECOND: Record<string, number> = { "m/s": 1, "km/h": 1 / 3.6 };
+
+/** Plausible mean wind speed of an hour (working assumption, see the guide). */
+export const MAX_PLAUSIBLE_WIND_SPEED_MS = 40;
+
+/** A plain decimal number with a dot, as the API sends it. Anything else is not guessed at. */
+const DECIMAL = /^-?\d+(\.\d+)?$/;
+
+function parseWindSpeed(value: number | string): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const text = value.trim();
+  return DECIMAL.test(text) ? Number(text) : null;
+}
+
+/** Wind speed in m/s, or the reason it cannot be used. */
+function evaluate(input: MeasurementInput): {
+  status: MeasurementStatus;
+  windSpeedMs: number | null;
+} {
+  if (input.windSpeed === null) return { status: "missing", windSpeedMs: null };
+  const value = parseWindSpeed(input.windSpeed);
+  if (value === null) return { status: "unparseable", windSpeedMs: null };
+  if (value === SENTINEL) return { status: "sentinel", windSpeedMs: null };
+  const factor = TO_METRES_PER_SECOND[input.unit];
+  if (factor === undefined) return { status: "unknown_unit", windSpeedMs: null };
+  const ms = value * factor;
+  if (ms < 0 || ms > MAX_PLAUSIBLE_WIND_SPEED_MS)
+    return { status: "out_of_range", windSpeedMs: null };
+  return { status: "valid", windSpeedMs: ms };
+}
+
+export function checkMeasurement(input: MeasurementInput): CheckedMeasurement {
+  return {
+    hour: new Date(input.timestamp),
+    ...evaluate(input),
+    rawValue: input.windSpeed === null ? null : String(input.windSpeed),
+    unit: input.unit,
+    windDirectionDeg: input.windDirectionDeg,
+    version: input.version,
+    updatedAt: new Date(input.updatedAt),
+  };
+}
+
+/**
+ * One reading per UTC hour: the highest version wins, on equal versions the later one in the list.
+ * Needed because the source sends some hours twice (e.g. as `Z` and as `+00:00`).
+ */
+export function newestPerHour(readings: CheckedMeasurement[]): CheckedMeasurement[] {
+  const byHour = new Map<number, CheckedMeasurement>();
+  for (const reading of readings) {
+    const key = reading.hour.getTime();
+    const kept = byHour.get(key);
+    if (!kept || reading.version >= kept.version) byHour.set(key, reading);
+  }
+  return [...byHour.values()];
+}
+
+/**
+ * Splits readings against the versions already stored (key: hour in ms since epoch).
+ * A reading wins only with a higher version than the stored one; same or older versions are dropped.
+ * `corrected` are stored hours that get a newer version, `added` are hours not stored yet.
+ */
+export function compareWithStored(
+  readings: CheckedMeasurement[],
+  storedVersions: ReadonlyMap<number, number>,
+): { added: CheckedMeasurement[]; corrected: CheckedMeasurement[] } {
+  const added: CheckedMeasurement[] = [];
+  const corrected: CheckedMeasurement[] = [];
+  for (const reading of readings) {
+    const stored = storedVersions.get(reading.hour.getTime());
+    if (stored === undefined) added.push(reading);
+    else if (reading.version > stored) corrected.push(reading);
+  }
+  return { added, corrected };
+}
+
+/**
+ * Where the next correction fetch (`updated_since`) starts after this page: the newest
+ * `updatedAt` seen so far. Never moves back, and never past `now`, so one bad timestamp
+ * from the source cannot skip corrections that come later. Null while nothing was seen.
+ */
+export function nextCorrectionCursor(
+  current: Date | null,
+  page: CheckedMeasurement[],
+  now: Date,
+): Date | null {
+  let newest = current?.getTime() ?? -Infinity;
+  for (const { updatedAt } of page) {
+    const t = updatedAt.getTime();
+    if (t > newest) newest = t; // NaN compares false, so invalid dates are ignored
+  }
+  if (newest === -Infinity) return null;
+  // The cap is now, unless the cursor already is later: moving back would refetch for nothing.
+  const cap = Math.max(now.getTime(), current?.getTime() ?? -Infinity);
+  return new Date(Math.min(newest, cap));
+}

@@ -4,25 +4,25 @@ Diese Datei beschreibt, worum es in diesem Projekt geht, welche Rahmenbedingunge
 
 ## Auftrag
 
-Case Study für die Position **Fullstack Engineer** bei **WindIQ**.
+Case Study für die Position **Fullstack Engineer** bei **Vidia Equity**, Projekt **WindIQ**.
 
-WindIQ ist eine digitale Plattform, auf der mehrere Gutachterbüros für Windenergie zusammenarbeiten. Projektentwickler verwalten dort ihre Windprojekte, prüfen Standorte vor und beauftragen Gutachten.
+WindIQ ist eine digitale Plattform, auf der mehrere Gutachterbüros für Windenergie zusammenarbeiten. Projektentwicklungsfirmen verwalten dort ihre Windprojekte, prüfen Standorte vor und beauftragen Gutachten.
 
 Eine Kernfrage auf der Plattform lautet: **Wie viel Strom erzeugt eine Windenergieanlage an einem Standort im Jahr?** Mehrere Gruppen arbeiten mit derselben Zahl, jede mit einer anderen Frage:
 
 | Wer | Frage an die Zahl |
 | --- | --- |
-| Gutachter | Kann ich das Ergebnis fachlich vertreten? Woher kommt jeder Wert? |
-| Projektierer | Lohnt sich der Standort? Wie entwickelt sich der Ertrag? |
+| Gutachtende | Kann ich das Ergebnis fachlich vertreten? Woher kommt jeder Wert? |
+| Projektierende | Lohnt sich der Standort? Wie entwickelt sich der Ertrag? |
 | Bank | Wie sicher ist der Ertrag? (→ P90) |
 
 **Zu bauen ist eine kleine Version davon:**
 
 1. **Anwendung:** holt laufend Messwerte aus einer API, berechnet Jahresertrag, P50 und P90 und visualisiert das Ergebnis.
 2. **Deployment:** öffentlich erreichbar, automatisiert getestet und ausgeliefert.
-3. **Betrieb:** läuft stabil, bis sich WindIQ meldet. Zu zeigen ist, wie der Betrieb überwacht wird.
+3. **Betrieb:** läuft stabil, bis sich Vidia Equity meldet. Zu zeigen ist, wie der Betrieb überwacht wird.
 
-> Laut Aufgabe geht es WindIQ **vor allem darum, dass die Anwendung zuverlässig läuft**. Robustheit und Betrieb sind wichtiger als viele Features.
+> Laut Aufgabe geht es Vidia Equity **vor allem darum, dass die Anwendung zuverlässig läuft**. Robustheit und Betrieb sind wichtiger als viele Features.
 
 Wie das umgesetzt wird und was darüber hinaus gebaut wird, ist freigestellt.
 
@@ -35,7 +35,7 @@ Wie das umgesetzt wird und was darüber hinaus gebaut wird, ist freigestellt.
 | Technologie und Hoster | frei wählbar, KI-Tools erlaubt |
 | Live-Betrieb | etwa eine Woche |
 | Abgabe | **Montag, 23.11.2026, EOD** |
-| Fragen | per E-Mail an WindIQ möglich |
+| Fragen | per E-Mail an Vidia Equity möglich |
 
 **Abgabe umfasst:**
 - URL der Anwendung
@@ -93,6 +93,17 @@ Diese Punkte ergeben sich aus der Spezifikation und müssen im Code behandelt we
 6. **Lücken möglich:** Stunden können fehlen. Die Datenabdeckung der letzten 12 Monate sollte sichtbar sein.
 7. Nicht dokumentiert sind Rate-Limits, 5xx-Verhalten und Timeouts. Deshalb defensiv arbeiten: Timeouts, Retries mit Backoff, Ausfall der API darf die Anwendung nicht stören (zuletzt berechnetes Ergebnis weiter anzeigen).
 
+### Beobachtet im echten Datenabruf (17.11.2026, nicht in der Doku)
+
+Ein voller Abruf (8.707 Stundenwerte) zeigt zusätzlich:
+
+- **Fehlerwert `-999`** (42 Werte), **unmögliche Spitzen** von 60–83 m/s (13 Werte) und **negative Werte** bis −2,9 m/s (17 Werte): Plausibilitätsprüfung nötig.
+- **`km/h`** kommt tatsächlich vor (349 Werte, plausibel nach Umrechnung ÷ 3,6). Strings sind sauber numerisch (`"6.69"`).
+- **Gemischte Zeitzonen** (`Z`, `+00:00`, `+02:00`): vor dem Upsert auf UTC normalisieren, sonst entstehen doppelte Stunden.
+- **Doppelt gelieferte Stunden** (19): dieselbe Stunde einmal als `Z`, einmal als `+00:00`. Pro Stunde bleibt ein Wert, die höchste `version` gewinnt. Nach dem Zusammenführen sind es 8.688 verschiedene Stunden.
+- **HTTP 503** tritt schon beim normalen Blättern auf: Retries sind von Anfang an Pflicht.
+- Der Cursor ist base64 für `offset:<n>`. Ein Retry mit demselben Cursor ist sicher.
+
 ## Berechnung (Vorgabe aus der Case Study)
 
 1. **Höhenumrechnung:** Der Mast misst tiefer als die Nabe.
@@ -104,13 +115,11 @@ Diese Punkte ergeben sich aus der Spezifikation und müssen im Code behandelt we
 4. **P50** = AEP netto
    **P90** = P50 × (1 − 1,282 × U) (`U` = `site.uncertainty`)
 
-Plausibilität mit den Beispielwerten der Doku: Mast 100 m, Nabe 140 m, α = 0,2 → Faktor (1,4)^0,2 ≈ 1,07. Verluste 3 % / 2 % / 5 % → netto ≈ 89,4 % von brutto. U = 10 % → P90 ≈ 87,2 % von P50.
+Plausibilität mit den Beispielwerten der Doku: Mast 100 m, Nabe 140 m, α = 0,2 → Faktor (1,4)^0,2 ≈ 1,07. Verluste 3 % / 2 % / 5 % → netto ≈ 90,3 % von brutto (0,97 × 0,98 × 0,95). U = 10 % → P90 ≈ 87,2 % von P50.
 
-### Eigene Annahmen (noch offen, siehe unten)
+### Annahmen
 
-- Zwischen den 1-m/s-Stützpunkten der Kennlinie wird **linear interpoliert**.
-- Unterhalb `cut_in` und oberhalb `cut_out` ist die Leistung 0.
-- „Letzte 12 Monate“ = rollierendes Fenster der letzten 8.760 Stunden bis zum neuesten Messwert.
+Wo Aufgabe und API-Doku offen sind, gilt eine Arbeitsannahme. Alle Annahmen stehen im README (Abschnitt „Annahmen“), Punkte mit Rückfrage an Vidia Equity sind dort markiert. Vor jeder Arbeit an Validierung oder Berechnung dort nachlesen und neue Annahmen dort ergänzen.
 
 ## Glossar
 
@@ -139,10 +148,13 @@ Plausibilität mit den Beispielwerten der Doku: Mast 100 m, Nabe 140 m, α = 0,2
 | **Volllaststunden** | AEP / Nennleistung: wie viele Stunden die Anlage bei voller Leistung laufen müsste, um den Jahresertrag zu erzeugen |
 | **Kapazitätsfaktor** | Volllaststunden / 8.760 h |
 | **Datenabdeckung** | Anteil der Stunden im Zeitraum, für die ein gültiger Messwert vorliegt |
+| **Fehlende Stunde** | Stunde im Zeitraum, für die die Quelle gar keinen Datensatz geliefert hat (Lücke) |
+| **Verworfene Stunde** | Stunde mit Datensatz, dessen Wert unbrauchbar ist (leer, `-999`, unplausibel, unbekannte Einheit) |
+| **Hochrechnung** | Ertrag der gültigen Stunden × 8.760 / Anzahl gültiger Stunden, damit Lücken das Jahr nicht kleiner rechnen |
 | **Ertragsgutachten** | Fachgutachten über den erwarteten Ertrag eines Standorts. In Deutschland nach Richtlinie **FGW-TR6**. |
 | **bankfähig** | Gutachten, das Banken für die Finanzierung akzeptieren (akkreditiertes Büro, z. B. DAkkS / ISO/IEC 17025) |
 | **Gutachterbüro** | Ingenieurbüro, das Windgutachten erstellt |
-| **Projektierer** | Projektentwickler, der Windparks plant und zur Genehmigung bringt |
+| **Projektierende** | Projektentwicklungsfirmen, die Windparks planen und zur Genehmigung bringen |
 | **ERA5 / Global Wind Atlas** | frei verfügbare Wind-Modelldatensätze für grobe Ersteinschätzungen (nicht Teil dieser Case Study) |
 | **LiDAR** | Windmessung per Laser vom Boden aus, Alternative zum Messmast |
 
@@ -161,13 +173,3 @@ Plausibilität mit den Beispielwerten der Doku: Mast 100 m, Nabe 140 m, α = 0,2
 | CI/CD | GitHub Actions: PR-Checks (Lint, Typecheck, `bun test`, Build), Deploy `dev` → Dev, `main` → Prod, Migrationen im Deploy, Smoke-Test gegen `/api/health` nach dem Deploy |
 
 Details zum Deployment: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-
-## Offene Fragen
-
-Klären, bevor die Berechnung festgelegt wird. Die Fragen lassen sich per E-Mail an WindIQ stellen:
-
-- Wie sollen fehlende oder ungültige Werte (`null`, nicht parsebare Strings) in die Berechnung eingehen: auslassen oder hochrechnen auf ein volles Jahr?
-- Kommen andere Einheiten als `m/s` vor (z. B. `km/h`, `kn`)?
-- „Letzte 12 Monate“: rollierend bis zum neuesten Wert oder Kalendermonate?
-- Zwischen den Kennlinien-Stützpunkten interpolieren (linear) oder auf den nächsten Stützpunkt runden?
-- Sollen frühere Ergebnisse historisiert werden (z. B. P50/P90 im Zeitverlauf)?

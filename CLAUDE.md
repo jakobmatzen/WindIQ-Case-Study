@@ -1,2 +1,4 @@
 @AGENTS.md
 @CONTEXT.md
+@docs/WORKFLOW.md
+@docs/ARCHITECTURE.md

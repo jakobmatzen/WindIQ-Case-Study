@@ -1,30 +1,26 @@
 import { connection } from "next/server";
-import { and, desc, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
 import { evaluateSyncFreshness } from "@/lib/health";
+import { getLastSuccessfulRuns, maxSyncAgeMinutes } from "@/server/health";
 
 /**
  * Readiness: is the system actually doing its job?
- * Checks the DB connection and how fresh the last successful sync is.
+ * Checks the DB connection and how fresh the last successful run of each worker job is:
+ * the measurement sync and the yield calculation.
  * Returns 503 when something is wrong, so external uptime monitors alert.
  */
 export async function GET() {
   await connection();
-  const maxAge = Number(process.env.HEALTH_MAX_SYNC_AGE_MINUTES) || undefined;
+  const maxAge = maxSyncAgeMinutes();
 
   try {
-    const [last] = await getDb()
-      .select({ finishedAt: schema.syncRuns.finishedAt })
-      .from(schema.syncRuns)
-      .where(and(eq(schema.syncRuns.job, "measurements"), eq(schema.syncRuns.status, "success")))
-      .orderBy(desc(schema.syncRuns.finishedAt))
-      .limit(1);
-
-    const sync = evaluateSyncFreshness(last?.finishedAt ?? null, new Date(), maxAge);
-    const healthy = sync.status === "ok";
+    const lastRuns = await getLastSuccessfulRuns();
+    const now = new Date();
+    const sync = evaluateSyncFreshness(lastRuns.measurements, now, maxAge);
+    const calculation = evaluateSyncFreshness(lastRuns.yield, now, maxAge);
+    const healthy = sync.status === "ok" && calculation.status === "ok";
 
     return Response.json(
-      { status: healthy ? "ok" : "degraded", checks: { database: "ok", sync } },
+      { status: healthy ? "ok" : "degraded", checks: { database: "ok", sync, yield: calculation } },
       { status: healthy ? 200 : 503, headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

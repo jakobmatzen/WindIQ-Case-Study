@@ -8,6 +8,41 @@
       "when": 1794862049035,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794954034014,
+      "tag": "0001_measurements",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795019883940,
+      "tag": "0002_yield",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795021834388,
+      "tag": "0003_corrections",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795029054017,
+      "tag": "0004_yield-mean-wind",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795036944964,
+      "tag": "0005_yield-months-rejections",
+      "breakpoints": true
     }
   ]
 }
