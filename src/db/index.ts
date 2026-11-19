@@ -19,6 +19,7 @@ export {
   lastSuccessfulSync,
   recentSyncRuns,
   startSyncRun,
+  syncActivityToken,
 } from "./sync-runs";
 export {
   insertYieldResult,

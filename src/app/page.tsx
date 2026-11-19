@@ -34,6 +34,7 @@ async function Dashboard() {
         appVersion={data.appVersion}
         dataAsOf={data.dataAsOf}
         stale={data.outage !== null}
+        dataVersion={data.dataVersion}
         p90Mwh={data.p90Mwh}
         p50Mwh={data.p50Mwh}
         quality={data.quality}

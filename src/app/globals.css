@@ -55,6 +55,48 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Live rail: the status dot pulses while data is fresh; a changed value shows a brief chip. */
+  --animate-live-pulse: live-pulse 2.4s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  --animate-delta-chip: delta-chip 5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  --animate-delta-chip-fade: delta-chip-fade 5s ease forwards;
+
+  @keyframes live-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    70%,
+    100% {
+      transform: scale(2.8);
+      opacity: 0;
+    }
+  }
+  @keyframes delta-chip {
+    0% {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    8%,
+    85% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  /* Reduced motion: the same chip without movement. */
+  @keyframes delta-chip-fade {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    8%,
+    85% {
+      opacity: 1;
+    }
+  }
 }
 
 :root {
