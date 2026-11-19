@@ -76,6 +76,7 @@ Pushen, neue Branches und Einstellungen passieren nur nach ausdrücklicher Freig
 | 18.11. | Grafiken als einfaches SVG vom Server statt einer Chart-Bibliothek | Kein JavaScript im Browser, scharf auf dem Handy. Eine Bibliothek lohnt sich erst für Zeitverläufe mit Tooltips. |
 | 18.11. | Der Worker speichert mit jedem Ergebnis auch die Monatswerte und die Ablehnungsgründe | Die Seite rechnet weiterhin nicht selbst, und jedes Ergebnis bleibt mit seiner Monatsaufteilung nachvollziehbar |
 | 18.11. | Tooltips öffnen sofort beim Überfahren und auch per Tippen, weiterhin ohne Chart-Bibliothek | Auf dem Handy gibt es kein Hover. Im Verlauf gehört jedem Punkt der nächstgelegene Streifen, so trifft man ihn auch bei vielen Ergebnissen. |
+| 19.11. | Im Verlauf erscheinen die Punkte nur beim Überfahren oder Tippen | Mit jedem Ergebnis kommen zwei Punkte dazu. Ohne sie bleiben die Linien auch nach Wochen Betrieb ruhig und lesbar. |
 
 ## 5. Befunde aus der API
 
