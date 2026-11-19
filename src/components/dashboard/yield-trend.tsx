@@ -30,7 +30,10 @@ export function YieldTrend({ history }: { history: YieldTrendPoint[] }) {
         Verlauf P50 und P90
       </h2>
       <p className="mb-4 text-sm text-muted-foreground">
-        Eine Stufe je neu berechnetem Ergebnis ({formatInt(history.length)} bisher).
+        {history.length === 1
+          ? "1 berechnetes Ergebnis bisher."
+          : `${formatInt(history.length)} berechnete Ergebnisse bisher.`}
+        {history.length > 0 && " Für Details auf die Linie zeigen oder tippen."}
       </p>
       {history.length === 0 ? (
         <p className="text-sm text-muted-foreground">Verlauf gerade nicht verfügbar.</p>
@@ -61,6 +64,8 @@ function Chart({ history }: { history: YieldTrendPoint[] }) {
       .join(" ") + " H 100";
   const first = history[0]!;
   const last = history.at(-1)!;
+  // A single result draws a zero-length line: its dots are then the only visible mark.
+  const dotsAlways = history.length === 1;
 
   return (
     <div className="grid grid-cols-[3.25rem_1fr_4.75rem] gap-x-2">
@@ -114,7 +119,8 @@ function Chart({ history }: { history: YieldTrendPoint[] }) {
                 <span
                   key={s.key}
                   className={
-                    "absolute size-2.5 -translate-1/2 rounded-full opacity-0 ring-2 ring-card transition-[opacity,scale] duration-150 ease-out group-hover:opacity-100 group-data-popup-open:opacity-100 motion-safe:group-hover:scale-150 motion-safe:group-data-popup-open:scale-150 " +
+                    "absolute size-2.5 -translate-1/2 rounded-full ring-2 ring-card transition-[opacity,scale] duration-150 ease-out group-hover:opacity-100 group-data-popup-open:opacity-100 motion-safe:group-hover:scale-150 motion-safe:group-data-popup-open:scale-150 " +
+                    (dotsAlways ? "" : "opacity-0 ") +
                     s.dot
                   }
                   style={{ left: dotLeft, top: `${y(h[s.key])}%` }}
